@@ -1,0 +1,131 @@
+{
+  "inspected_at_utc": "2026-09-15T14:28:29.354952+00:00",
+  "scope": "HTTP accessibility, CSV schema, and bounded prefix diagnostics; no authenticated API or point-in-time certification",
+  "sources": [
+    {
+      "name": "fred_sp500",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
+      "byte_cap": 250000,
+      "http_status": 206,
+      "content_type": "application/csv",
+      "content_range": "bytes 0-48902/48903",
+      "bytes_read": 48903,
+      "sha256": "df5e6e554eff291c27982e9a9054f4728e89c00dbfb7c72cc184b7342c707afe",
+      "columns": [
+        "observation_date",
+        "SP500"
+      ],
+      "parsed_rows": 2608,
+      "prefix_only": false,
+      "nonmissing_values": 2512,
+      "first_date": "2016-09-15",
+      "last_date": "2026-09-14",
+      "status": "ok"
+    },
+    {
+      "name": "cboe_vix",
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "byte_cap": 750000,
+      "http_status": 206,
+      "content_type": "text/csv",
+      "content_range": "bytes 0-472614/472615",
+      "bytes_read": 472615,
+      "sha256": "9148183f463cb27743267d605a743241fa3e4c134eb1275e5871a41ce0837b8a",
+      "columns": [
+        "DATE",
+        "OPEN",
+        "HIGH",
+        "LOW",
+        "CLOSE"
+      ],
+      "parsed_rows": 9272,
+      "prefix_only": false,
+      "nonmissing_values": 9272,
+      "first_date": "01/02/1990",
+      "last_date": "09/14/2026",
+      "status": "ok"
+    },
+    {
+      "name": "fnspid_external_prefix",
+      "url": "https://huggingface.co/datasets/Zihan1004/FNSPID/resolve/main/Stock_news/All_external.csv",
+      "byte_cap": 1048576,
+      "http_status": 206,
+      "content_type": "text/csv; charset=utf-8",
+      "content_range": "bytes 0-1048575/5731397037",
+      "bytes_read": 1048576,
+      "sha256": "2fec2c2aeeaa814c85afb0bbadb83ff04280083171c387fcc2777d0ca4d838c0",
+      "columns": [
+        "Date",
+        "Article_title",
+        "Stock_symbol",
+        "Url",
+        "Publisher",
+        "Author",
+        "Article",
+        "Lsa_summary",
+        "Luhn_summary",
+        "Textrank_summary",
+        "Lexrank_summary"
+      ],
+      "parsed_rows": 4605,
+      "prefix_only": true,
+      "midnight_rows": 4563,
+      "utc_suffix_rows": 4605,
+      "distinct_symbols": 5,
+      "distinct_urls": 4595,
+      "missing_headlines": 0,
+      "year_counts": {
+        "2009": 599,
+        "2010": 576,
+        "2011": 542,
+        "2012": 297,
+        "2013": 298,
+        "2014": 371,
+        "2015": 337,
+        "2016": 341,
+        "2017": 258,
+        "2018": 306,
+        "2019": 353,
+        "2020": 327
+      },
+      "sample_warning": "Contiguous file prefix, NOT a random or representative sample; dates are unvalidated strings.",
+      "status": "ok"
+    },
+    {
+      "name": "fnspid_nasdaq_prefix",
+      "url": "https://huggingface.co/datasets/Zihan1004/FNSPID/resolve/main/Stock_news/nasdaq_exteral_data.csv",
+      "byte_cap": 1048576,
+      "http_status": 206,
+      "content_type": "text/csv; charset=utf-8",
+      "content_range": "bytes 0-1048575/23232979597",
+      "bytes_read": 1048576,
+      "sha256": "8371ac4fdd0c43e54475cce2c91cca8879662aa9e4a06a00b931e8eda9ac9843",
+      "columns": [
+        "Unnamed: 0",
+        "Date",
+        "Article_title",
+        "Stock_symbol",
+        "Url",
+        "Publisher",
+        "Author",
+        "Article",
+        "Lsa_summary",
+        "Luhn_summary",
+        "Textrank_summary",
+        "Lexrank_summary"
+      ],
+      "parsed_rows": 153,
+      "prefix_only": true,
+      "midnight_rows": 152,
+      "utc_suffix_rows": 153,
+      "distinct_symbols": 1,
+      "distinct_urls": 153,
+      "missing_headlines": 0,
+      "year_counts": {
+        "2023": 153
+      },
+      "sample_warning": "Contiguous file prefix, NOT a random or representative sample; dates are unvalidated strings.",
+      "status": "ok"
+    }
+  ]
+}

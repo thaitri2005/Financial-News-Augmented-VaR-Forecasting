@@ -1,0 +1,11 @@
+{
+  "scope": "Synthetic GARCH-t/FHS resource and integrity measurement; no market forecast, outcome, score, or final-period result.",
+  "environment": {"arch": "7.2.0", "statsmodels": "0.14.5", "pandas": "2.2.3"},
+  "paths_per_method": 50000,
+  "methods_ready": ["garch_t", "fhs"],
+  "elapsed_seconds": 0.0533932,
+  "initial_rss_bytes": 32387072,
+  "final_rss_bytes": 146284544,
+  "fit_converged": true,
+  "mechanics": "two-step simulation; second horizon only; deterministic origin-derived seed"
+}

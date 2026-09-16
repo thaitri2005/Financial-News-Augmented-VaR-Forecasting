@@ -1,0 +1,20 @@
+{
+  "scope": "Outcome-blind integrity and count evidence for the private 2021-2022 market-only forecast-attempt ledger.",
+  "run_id": "1e1b9ce5e173a29196edbc04ae6f04c8d5835e948228dee5ba74f2f6fed1cd05",
+  "market_dataset_id": "7819b4c29e1822c6829bf7ea2f5ec8570ba4995eb7f9e4d017722412701a1d8a",
+  "calendar_id": "628049ff60f65d07a7dbeba6ff57dfe87a33bd9906b79a26603b2152926fe5e4",
+  "target_end_range": {"start": "2021-01-01", "end": "2022-12-31"},
+  "attempt_rows": 1006,
+  "target_end_sessions": 503,
+  "models": {
+    "historical_simulation_linear_w250": {"ready": 503},
+    "gaussian_ewma_d0.94_i63": {"ready": 503}
+  },
+  "monthly_refit_rows": 50,
+  "integrity": {
+    "format": "parquet",
+    "manifest_checksum_verified": true,
+    "selection_rule": "earlier_origin_and_label_available_at_lte_origin_cutoff_v1"
+  },
+  "excludes": ["forecast values", "realized outcomes", "scores", "rankings", "2023-2025 target-end rows"]
+}

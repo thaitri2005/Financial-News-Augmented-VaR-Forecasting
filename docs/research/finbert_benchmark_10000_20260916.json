@@ -1,0 +1,76 @@
+{
+  "generated_at_utc": "2026-09-15T21:15:05.535642+00:00",
+  "scope": "Engineering-only CPU compatibility benchmark; no raw titles, scores, prices, outcomes, or predictive claim.",
+  "model": {
+    "id": "ProsusAI/finbert",
+    "revision": "5fcfed04a2ca89adf4170ec0a4715103ed7745db",
+    "cache_path": "data/cache/huggingface/models--ProsusAI--finbert/snapshots/5fcfed04a2ca89adf4170ec0a4715103ed7745db",
+    "file_sha256": {
+      "config.json": "f6449ddda85eb726207a40be59c0cd3bd4b142ccb27298d5e45f9ae3396b1abe",
+      "pytorch_model.bin": "e15a7b5738df7f17553399b6d94c6e2ff69c89245d066e8e5d183f5803a554e3",
+      "special_tokens_map.json": "303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3",
+      "tokenizer_config.json": "ffc7913f6084b138dad68de5a0c2f0ee25ac983709260901e01f53be5796b9d9",
+      "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    },
+    "trust_remote_code": false,
+    "device": "cpu",
+    "precision": "fp32"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.6.0+cpu",
+    "transformers": "4.49.0",
+    "threads": 4,
+    "interop_threads": 1
+  },
+  "sample": {
+    "requested_titles": 10000,
+    "processed_titles": 10000,
+    "batch_size": 8,
+    "source": "retained_yahoo_engineering_only",
+    "source_lineage": [
+      {
+        "path": "data/raw/feasibility_20260915/yahoo_2017_processed.json.xz",
+        "sha256": "ec812bf7a9204e2a58893534a1b7d60ea0b125ead1ef03ce13dfe4e225dca5c7",
+        "titles_selected": 403
+      },
+      {
+        "path": "data/raw/feasibility_20260915/yahoo_2018_processed.json.xz",
+        "sha256": "4fef778cd41dca332202e3168659f2734e5fde3fe8fb731b4facf970bbf96fd7",
+        "titles_selected": 407
+      },
+      {
+        "path": "data/raw/feasibility_20260915/yahoo_2019_processed.json.xz",
+        "sha256": "14d5dd5888cbe2ebfb633d7cc1d62be59095986c4f2730fdeb61d08ad227a091",
+        "titles_selected": 1588
+      },
+      {
+        "path": "data/raw/feasibility_20260915/yahoo_2020_processed.json.xz",
+        "sha256": "0a7270bc649664f4b64d121d7aac502761226e0bac5e97f5a430125c2bbd6530",
+        "titles_selected": 1855
+      },
+      {
+        "path": "data/raw/feasibility_20260915/yahoo_2021_processed.json.xz",
+        "sha256": "674269a27be3f5fde07b89fc04121e324fd1c71b962ba8c16a3ffa13299b6b61",
+        "titles_selected": 5747
+      }
+    ]
+  },
+  "measurement": {
+    "wall_seconds": 297.97258910001256,
+    "titles_per_second": 33.56013393783535,
+    "initial_rss_bytes": 444436480,
+    "peak_rss_bytes": 963940352,
+    "final_rss_bytes": 963010560,
+    "rss_limit_bytes": 6442450944,
+    "label_counts": {
+      "negative": 1581,
+      "neutral": 6308,
+      "positive": 2111
+    },
+    "repeat_prefix_count": 32,
+    "repeat_prefix_match": true,
+    "full_digest": "81a504f0077cf8dcb1fb0abca500d62a815390f168d12c54040c0a155a715878",
+    "repeat_prefix_digest": "6634c87f3298ebdbe3abfeca7dcf9125cca9a64980572feb7e8b30257abc1003"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "python_scripts_parse": true,
+  "json_files_parse": true,
+  "numbered_sections": 25,
+  "local_links_verified": 49,
+  "blueprint_words_approximate": 20338,
+  "configuration_yaml_parses": true,
+  "executed_notebook_code_cells": 6,
+  "notebook_errors": 0,
+  "retained_files_verified": 14,
+  "retained_bytes_verified": 155055491,
+  "yahoo_count_totals_reconcile": true,
+  "checked_at_utc": "2026-09-15T15:44:57.168789+00:00",
+  "scope": "Document and research artifacts; no forecasting implementation tests or model performance claims."
+}

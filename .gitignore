@@ -1,0 +1,15 @@
+# Private source data, local environments, caches, and generated run artifacts
+data/
+artifacts/
+.cache/
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/

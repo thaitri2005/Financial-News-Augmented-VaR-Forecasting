@@ -1,0 +1,37 @@
+{
+  "generated_at_utc": "2026-09-15T20:56:36.791459Z",
+  "scope": "Outcome-blind identity, integrity, and membership evidence for the private M1-04B market dataset. No price, return, loss, breach, or model result is included.",
+  "dataset_id": "7819b4c29e1822c6829bf7ea2f5ec8570ba4995eb7f9e4d017722412701a1d8a",
+  "calendar": {
+    "original_id": "0fa86aa24e4551cc2346bb00b069a3e733797edd35bfa87d8440bdff7e345b9c",
+    "extended_id": "628049ff60f65d07a7dbeba6ff57dfe87a33bd9906b79a26603b2152926fe5e4",
+    "requested_start": "2016-09-15",
+    "requested_end": "2026-01-02",
+    "extended_origins": 2338,
+    "overlap_origins_verified": 2337
+  },
+  "study_target_end": "2025-12-31",
+  "tables": {
+    "market_observations": {"rows": 4792, "bytes": 76151, "sha256": "0c1f3f345e962d01c835010b3bb79ab285b5e323310947d38b64eb75decb86cf"},
+    "labels": {"rows": 2336, "bytes": 131599, "sha256": "97422194d10f76fa792fb8dd30b227ddcf7ac7e8d8cc240a2035cbea0bfeb13d"},
+    "label_exclusions": {"rows": 2, "bytes": 2512, "sha256": "8a1e7e1ace68ab2663178ff621b352862afd05dc5fa6ef7384096c92fcbe2163"}
+  },
+  "exclusions": [
+    {"origin_session": "2025-12-31", "reason": "unknown_end_availability", "in_study_horizon": false},
+    {"origin_session": "2026-01-02", "reason": "unknown_start_availability", "in_study_horizon": false}
+  ],
+  "lineage": {
+    "availability_basis": "historical_prior_session_assumption",
+    "format": "parquet/zstd",
+    "writer": "pyarrow==25.0.1",
+    "publication_protocol": "same_volume_staged_directory_rename_v1",
+    "sp500_raw_sha256": "df5e6e554eff291c27982e9a9054f4728e89c00dbfb7c72cc184b7342c707afe",
+    "vix_raw_sha256": "9148183f463cb27743267d605a743241fa3e4c134eb1275e5871a41ce0837b8a"
+  },
+  "resource_preflight": {
+    "available_ram_bytes": 7084969984,
+    "free_disk_bytes": 75662659584,
+    "normalization_gate_passed": true,
+    "sentiment_gate_passed": true
+  }
+}

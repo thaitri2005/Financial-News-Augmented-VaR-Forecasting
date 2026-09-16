@@ -1,0 +1,170 @@
+{
+  "schema_version": "gdelt_catalog_pilot_v1",
+  "retrieved_at_utc": "2026-09-15T17:42:21.358509+00:00",
+  "catalog_url": "https://data.gdeltproject.org/gdeltv2/masterfilelist.txt",
+  "catalog_total_bytes": 127654599,
+  "catalog_last_modified": "Tue, 15 Sep 2026 17:36:01 GMT",
+  "range_requests": 26,
+  "transferred_bytes": 1703936,
+  "range_sha256": [
+    {
+      "start": 0,
+      "bytes": 65536,
+      "sha256": "67b482f47253e6c412678172a7dcfcb36ccc4d7c174fa9605d8a6251fb41921d"
+    },
+    {
+      "start": 63794531,
+      "bytes": 65536,
+      "sha256": "0ab52fd88c2221e2022a0a6539c8e606a6ebb6db68b9ec6358fc97652d03b2f8"
+    },
+    {
+      "start": 31897265,
+      "bytes": 65536,
+      "sha256": "29004564af587970478d31027c32a957a021bb4ccc8022468a4c7fe69abc933a"
+    },
+    {
+      "start": 47845898,
+      "bytes": 65536,
+      "sha256": "70de12e8d7dccfe9c591b389b011977cb4a9e9ec4a690b99cd2ec2f87ae1451e"
+    },
+    {
+      "start": 55820214,
+      "bytes": 65536,
+      "sha256": "7bc13b357c9b8cd49ce7535519421471af143faf51360e0d452db01b17e06fa0"
+    },
+    {
+      "start": 59807372,
+      "bytes": 65536,
+      "sha256": "f9c24e55f0ac55a2b3e4c6b261753b57c4a8dc5480e5ad7c1fc38516fd55abff"
+    },
+    {
+      "start": 57813793,
+      "bytes": 65536,
+      "sha256": "bf05e74c4a0f9f925a138a2677c1c8dc9461d874b7749c64d2767154d220b9bd"
+    },
+    {
+      "start": 56817003,
+      "bytes": 65536,
+      "sha256": "e55cf41c1fca8df2e57b05936e7bc8ed9db48525ea5dfe24233b5517272eb086"
+    },
+    {
+      "start": 56318608,
+      "bytes": 65536,
+      "sha256": "04259e6dce4682b0b1a42b20745d49c860fb1448b1396d89e8dc84d8ea04b5d8"
+    },
+    {
+      "start": 56567805,
+      "bytes": 65536,
+      "sha256": "375cdf2bd5ca3c30b667519d584b4af6220056252557032d71007a99ed253989"
+    },
+    {
+      "start": 56443206,
+      "bytes": 65536,
+      "sha256": "86add3b271cef9816fed0500a86bceec130f1f9336979235b6076c0a8aa7b1a9"
+    },
+    {
+      "start": 56380907,
+      "bytes": 65536,
+      "sha256": "55dc16647d23f5875ea4bab5458b4bbde5090cd596209578e7805ea024b55959"
+    },
+    {
+      "start": 56253072,
+      "bytes": 65536,
+      "sha256": "b765e702ffdd70c1ea82bebc70285d2843330ae2c2d931d29f6149150e63bdd2"
+    },
+    {
+      "start": 56318096,
+      "bytes": 65536,
+      "sha256": "b85fbdcbd9109069818c4cf1f615fccc4c0a4ea20438b1a4ff564a6e706516ce"
+    },
+    {
+      "start": 95691797,
+      "bytes": 65536,
+      "sha256": "bd8ce81807a69e9c33a0463b8071ab5b9288122c488667498e717318febd4c4f"
+    },
+    {
+      "start": 79743164,
+      "bytes": 65536,
+      "sha256": "39855e4626f41e0b98f35ea22a551a1915e95f1f5696e5ab1e1588648bfded9a"
+    },
+    {
+      "start": 87717480,
+      "bytes": 65536,
+      "sha256": "70b96b6dc7bcc5da9a8f69368f0f1c72aca397c1c8ccb7384ffafbfea94c718a"
+    },
+    {
+      "start": 83730322,
+      "bytes": 65536,
+      "sha256": "13ee3fcaeb8137d248c84a84a30494975dda4ca90996c24ea9167fc8f1de68ad"
+    },
+    {
+      "start": 81736743,
+      "bytes": 65536,
+      "sha256": "c081284be78d5560b5a2d5614995b640029847eacde0f6e6a63dcb997e494ff1"
+    },
+    {
+      "start": 80739953,
+      "bytes": 65536,
+      "sha256": "b8e03d0495d0c991916220db50177c516f9a7bc52da5e315a890a4f0c59acaf5"
+    },
+    {
+      "start": 80241558,
+      "bytes": 65536,
+      "sha256": "8e0c3d1b564044ced0b2cca34131f9d217500ff104215b9623d61e3ffd8b557d"
+    },
+    {
+      "start": 80490755,
+      "bytes": 65536,
+      "sha256": "cbb1c925f70e1fd5e966fc8339bf707aa1d362c404b34c5c2ebe28c5c4669848"
+    },
+    {
+      "start": 80615354,
+      "bytes": 65536,
+      "sha256": "25f480b0cd4fb61a4e8748f3c5b9ff473d0ddd0633cc6a78947e563128caa368"
+    },
+    {
+      "start": 80553054,
+      "bytes": 65536,
+      "sha256": "b4d561a8b356ae5e7e78f0e0b2cdb8ec4ee7dd4cba38066c765ce6f4ff0bb48a"
+    },
+    {
+      "start": 80425219,
+      "bytes": 65536,
+      "sha256": "2b9989f69ecc2bee7e42587206aa06001a2b0c46046d00e5a2a6629fc5b4f965"
+    },
+    {
+      "start": 80490243,
+      "bytes": 65536,
+      "sha256": "3f3ea994052e53470e4cae6b1f33265ac3de2b861236dbaf36f468f688e448b8"
+    }
+  ],
+  "days": [
+    {
+      "day_utc": "2020-03-16",
+      "first_catalog_day_in_scan": "20200315",
+      "last_catalog_day_in_scan": "20200317",
+      "gkg_batches_listed": 96,
+      "expected_quarter_hour_batches": 96,
+      "missing_batches": [],
+      "unexpected_batches": [],
+      "listed_compressed_bytes": 759200749,
+      "first_gkg_batch": "20200316000000",
+      "last_gkg_batch": "20200316234500",
+      "scope": "Public catalog listing only; archive payloads/titles not fetched."
+    },
+    {
+      "day_utc": "2022-06-13",
+      "first_catalog_day_in_scan": "20220613",
+      "last_catalog_day_in_scan": "20220615",
+      "gkg_batches_listed": 96,
+      "expected_quarter_hour_batches": 96,
+      "missing_batches": [],
+      "unexpected_batches": [],
+      "listed_compressed_bytes": 494756325,
+      "first_gkg_batch": "20220613000000",
+      "last_gkg_batch": "20220613234500",
+      "scope": "Public catalog listing only; archive payloads/titles not fetched."
+    }
+  ],
+  "interpretation": "Listing/transfer sizing only. Complete title retrieval, stable relevance, release semantics and BigQuery scan bytes remain unverified."
+}
