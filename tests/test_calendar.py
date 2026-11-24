@@ -8,9 +8,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from typer.testing import CliRunner
 
-from newsvar.calendar import build_xnys_snapshot, load_snapshot, write_snapshot
 from newsvar.cli import app
-from newsvar.provenance import IntegrityError, canonical_json, sha256
+from newsvar.data.calendar import build_xnys_snapshot, load_snapshot, write_snapshot
+from newsvar.hashing import IntegrityError, canonical_json, sha256
 
 
 def test_early_close_holiday_and_exact_news_boundaries() -> None:

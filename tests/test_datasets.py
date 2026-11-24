@@ -6,14 +6,14 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import pytest
 
-from newsvar.calendar import CalendarSnapshot, build_xnys_snapshot
-from newsvar.datasets import (
+from newsvar.data.calendar import CalendarSnapshot, build_xnys_snapshot
+from newsvar.data.datasets import (
     DatasetIntegrityError,
     load_market_dataset,
     materialize_market_dataset,
     verify_calendar_extension,
 )
-from newsvar.ingestion.market import MarketSource
+from newsvar.data.market import MarketSource
 
 
 def _source(

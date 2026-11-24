@@ -68,7 +68,7 @@ files = ["src/newsvar"]
 strict = true
 
 [[tool.mypy.overrides]]
- module = ["exchange_calendars", "exchange_calendars.*", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "joblib", "pandas", "pandas.*", "matplotlib", "matplotlib.*"]
+ module = ["exchange_calendars", "exchange_calendars.*", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "huggingface_hub", "huggingface_hub.*", "joblib", "pandas", "pandas.*", "matplotlib", "matplotlib.*"]
 ignore_missing_imports = true
 
 [tool.uv]

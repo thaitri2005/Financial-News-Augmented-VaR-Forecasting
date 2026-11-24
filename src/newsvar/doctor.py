@@ -1,7 +1,7 @@
 """Read-only resource preflight; no ingestion, model loading, or credential access.
 
-Thresholds implement blueprint section 18.1. A snapshot does not enforce memory
-limits on a later job: continuous process monitoring is a separate capability.
+Thresholds follow the project resource budget in docs/architecture.md. A snapshot does
+not enforce memory limits on a later job; continuous monitoring is not implemented.
 """
 
 import platform

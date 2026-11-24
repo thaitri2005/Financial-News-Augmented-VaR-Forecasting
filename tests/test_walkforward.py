@@ -1,10 +1,10 @@
 from datetime import UTC, date, datetime, timedelta
 
-from newsvar.walkforward import AvailableLabel, build_attempts, eligible_labels
+from newsvar.evaluation.walkforward import AvailableLabel, build_attempts, eligible_labels
 
 
 def _origin(day: int, month: int = 1) -> object:
-    from newsvar.calendar import ForecastOrigin
+    from newsvar.data.calendar import ForecastOrigin
 
     session = date(2021, month, day)
     return ForecastOrigin(

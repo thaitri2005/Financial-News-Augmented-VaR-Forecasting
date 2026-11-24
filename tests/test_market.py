@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from newsvar.ingestion.market import (
+from newsvar.data.market import (
     MarketSourceError,
     market_coverage,
     parse_market_csv,

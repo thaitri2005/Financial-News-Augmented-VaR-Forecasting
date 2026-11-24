@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from newsvar.quantile_models import (
+from newsvar.models.quantile import (
     QuantileModelError,
     QuantileTrainingRow,
     fit_linear_quantile,

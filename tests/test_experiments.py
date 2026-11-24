@@ -5,9 +5,9 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from newsvar import experiments
-from newsvar.metrics import QuantileObservation
-from newsvar.quantile_models import QuantileTrainingRow
+from newsvar.evaluation import experiments
+from newsvar.evaluation.metrics import QuantileObservation
+from newsvar.models.quantile import QuantileTrainingRow
 
 NAMES = ("x",)
 

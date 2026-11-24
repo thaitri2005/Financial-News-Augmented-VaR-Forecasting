@@ -75,8 +75,8 @@ def calendar_build(
     """Build and save a versioned XNYS pre-close origin grid."""
     from datetime import date
 
-    from newsvar.calendar import build_xnys_snapshot, write_snapshot
-    from newsvar.provenance import IntegrityError
+    from newsvar.data.calendar import build_xnys_snapshot, write_snapshot
+    from newsvar.hashing import IntegrityError
 
     try:
         snapshot = build_xnys_snapshot(date.fromisoformat(start), date.fromisoformat(end))
@@ -107,8 +107,8 @@ def calendar_inspect(
     path: Annotated[Path, typer.Argument(exists=True, file_okay=True, dir_okay=False)],
 ) -> None:
     """Validate and summarize a saved XNYS calendar file."""
-    from newsvar.calendar import load_snapshot
-    from newsvar.provenance import IntegrityError
+    from newsvar.data.calendar import load_snapshot
+    from newsvar.hashing import IntegrityError
 
     try:
         snapshot = load_snapshot(path)
@@ -140,12 +140,12 @@ def market_audit(
     ] = Path("."),
     audit_manifest: Annotated[
         Path, typer.Option(exists=True, file_okay=True, dir_okay=False)
-    ] = Path("docs/research/retained_sample_audit.json"),
+    ] = Path("data/raw/market/manifest.json"),
 ) -> None:
     """Audit retained market source dates on XNYS; report no returns or model scores."""
-    from newsvar.calendar import load_snapshot
-    from newsvar.ingestion.market import MarketSourceError, market_coverage, retained_market_sources
-    from newsvar.provenance import IntegrityError
+    from newsvar.data.calendar import load_snapshot
+    from newsvar.data.market import MarketSourceError, market_coverage, retained_market_sources
+    from newsvar.hashing import IntegrityError
 
     try:
         snapshot = load_snapshot(calendar_path)
@@ -170,7 +170,7 @@ def market_materialize(
     ] = Path("."),
     audit_manifest: Annotated[
         Path, typer.Option(exists=True, file_okay=True, dir_okay=False)
-    ] = Path("docs/research/retained_sample_audit.json"),
+    ] = Path("data/raw/market/manifest.json"),
     output_dir: Annotated[
         Path, typer.Option(help="Versioned private derived-dataset directory.")
     ] = Path("data/derived/market"),
@@ -188,14 +188,14 @@ def market_materialize(
     if not evaluate(preflight, Stage.NORMALIZATION).ready:
         typer.echo("Market materialization paused: normalization preflight did not pass.", err=True)
         raise typer.Exit(3)
-    from newsvar.calendar import build_xnys_snapshot, load_snapshot, write_snapshot
-    from newsvar.datasets import (
+    from newsvar.data.calendar import build_xnys_snapshot, load_snapshot, write_snapshot
+    from newsvar.data.datasets import (
         DatasetIntegrityError,
         materialize_market_dataset,
         verify_calendar_extension,
     )
-    from newsvar.ingestion.market import MarketSourceError, retained_market_sources
-    from newsvar.provenance import IntegrityError
+    from newsvar.data.market import MarketSourceError, retained_market_sources
+    from newsvar.hashing import IntegrityError
 
     try:
         original = load_snapshot(calendar_path)
@@ -238,7 +238,7 @@ def market_inspect(
     ],
 ) -> None:
     """Validate a versioned market dataset without disclosing outcomes."""
-    from newsvar.datasets import DatasetIntegrityError, load_market_dataset
+    from newsvar.data.datasets import DatasetIntegrityError, load_market_dataset
 
     try:
         manifest = load_market_dataset(dataset_path)
@@ -272,17 +272,17 @@ def labels_audit(
     ] = Path("."),
     audit_manifest: Annotated[
         Path, typer.Option(exists=True, file_okay=True, dir_okay=False)
-    ] = Path("docs/research/retained_sample_audit.json"),
+    ] = Path("data/raw/market/manifest.json"),
 ) -> None:
     """Count adjacent eligible historical-proxy labels without exposing return values."""
-    from newsvar.calendar import load_snapshot
-    from newsvar.ingestion.market import MarketSourceError, retained_market_sources
-    from newsvar.labels import (
+    from newsvar.data.calendar import load_snapshot
+    from newsvar.data.labels import (
         HISTORICAL_AVAILABILITY_BASIS,
         build_labels,
         historical_prior_session_availability,
     )
-    from newsvar.provenance import IntegrityError
+    from newsvar.data.market import MarketSourceError, retained_market_sources
+    from newsvar.hashing import IntegrityError
 
     try:
         snapshot = load_snapshot(calendar_path)
@@ -303,7 +303,7 @@ def labels_audit(
 def _gdelt_day_worker(arguments: tuple[str, str, str, str, int]) -> tuple[str, int, int]:
     from datetime import date as date_type
 
-    from newsvar.ingestion.gdelt import OK, extract_day, read_catalog
+    from newsvar.data.gdelt import OK, extract_day, read_catalog
 
     day_text, catalog_path, output_root, catalog_sha256, threads = arguments
     day = date_type.fromisoformat(day_text)
@@ -340,7 +340,7 @@ def gdelt_extract(
     from datetime import date as date_type
     from multiprocessing import Pool
 
-    from newsvar.ingestion.gdelt import day_is_final, iter_days, load_day
+    from newsvar.data.gdelt import day_is_final, iter_days, load_day
 
     first, last = date_type.fromisoformat(start), date_type.fromisoformat(end)
     with catalog_path.open("rb") as stream:
@@ -381,7 +381,7 @@ def news_corpus(
     """Normalize, filter and chronologically deduplicate committed GDELT days."""
     from datetime import date as date_type
 
-    from newsvar.news import build_corpus
+    from newsvar.data.news import build_corpus
 
     path, manifest = build_corpus(
         title_root,
@@ -421,9 +421,9 @@ def news_score(
     import pyarrow.parquet as pq
     import torch
 
-    from newsvar.news import load_corpus, sample_key, sample_threshold
-    from newsvar.scoring import score_titles
-    from newsvar.sentiment import FinbertEncoder
+    from newsvar.data.news import load_corpus, sample_key, sample_threshold
+    from newsvar.nlp.encoder import FinbertEncoder
+    from newsvar.nlp.scoring import score_titles
 
     manifest = load_corpus(corpus)
     unique = manifest["unique_retained_titles"]
@@ -475,8 +475,8 @@ def news_score(
 def _study_inputs(config: Path):  # type: ignore[no-untyped-def]
     from datetime import date as date_type
 
-    from newsvar.sentiment import MODEL_REVISION, model_fingerprint
-    from newsvar.study import StudyInputs
+    from newsvar.nlp.encoder import MODEL_REVISION, model_fingerprint
+    from newsvar.study.pipeline import StudyInputs
 
     settings = json.loads(config.read_text(encoding="utf-8"))
     snapshot = Path(settings["model_snapshot"])
@@ -508,7 +508,7 @@ def study_admit(
     config: Annotated[Path, CONFIG_OPTION] = Path("data/study.json"),
 ) -> None:
     """Write the outcome-blind continuity, sample-size and split record."""
-    from newsvar.study import admission
+    from newsvar.study.pipeline import admission
 
     inputs, study_end = _study_inputs(config)
     record = admission(inputs, study_end=study_end)
@@ -524,7 +524,7 @@ def study_develop(
     trees: Annotated[bool, typer.Option(help="Include the small tree challenger.")] = True,
 ) -> None:
     """Run the declared development search and sensitivities; never opens the test range."""
-    from newsvar.study import develop
+    from newsvar.study.pipeline import develop
 
     inputs, _ = _study_inputs(config)
     split = json.loads(admission_record.read_text(encoding="utf-8"))["split"]
@@ -552,7 +552,7 @@ def study_preregister(
     """Freeze the final protocol. Requires a clean committed source tree."""
     import subprocess
 
-    from newsvar.study import file_sha256, preregistration
+    from newsvar.study.pipeline import file_sha256, preregistration
 
     dirty = subprocess.run(
         ["git", "status", "--porcelain", "--", "src", "pyproject.toml", "uv.lock"],
@@ -586,7 +586,7 @@ def study_evaluate(
     ),
 ) -> None:
     """Open the locked test range once, exactly as preregistered."""
-    from newsvar.study import evaluate as run_final
+    from newsvar.study.pipeline import evaluate as run_final
 
     if output.exists():
         typer.echo("A final evaluation already exists; it is not overwritten.", err=True)
@@ -613,7 +613,7 @@ def study_report(
     figure_dir: Annotated[Path, typer.Option()] = Path("docs/figures"),
 ) -> None:
     """Rebuild result tables and figures from saved records; fits nothing."""
-    from newsvar.report import write_report
+    from newsvar.study.report import write_report
 
     write_report(
         admission=json.loads(admission_record.read_text(encoding="utf-8")),
@@ -624,3 +624,98 @@ def study_report(
         figure_dir=figure_dir,
     )
     typer.echo(str(output))
+
+
+def _download(url: str, destination: Path, *, max_bytes: int) -> int:
+    """Stream a public file to disk atomically with an explicit size bound."""
+    import urllib.request
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    stage = destination.with_name(destination.name + ".part")
+    total = 0
+    with urllib.request.urlopen(url, timeout=120) as response, stage.open("wb") as stream:  # noqa: S310
+        while chunk := response.read(1 << 20):
+            total += len(chunk)
+            if total > max_bytes:
+                raise typer.BadParameter(f"{url} exceeds the {max_bytes}-byte bound.")
+            stream.write(chunk)
+    stage.replace(destination)
+    return total
+
+
+@market_app.command("fetch")
+def market_fetch(
+    output_dir: Annotated[Path, typer.Option(help="Private directory for the two CSVs.")] = Path(
+        "data/raw/market"
+    ),
+    manifest: Annotated[Path, typer.Option(help="Snapshot manifest to write.")] = Path(
+        "data/raw/market/manifest.json"
+    ),
+) -> None:
+    """Download FRED SP500 and Cboe VIX and write the dated snapshot manifest."""
+    import csv
+    import hashlib
+    from datetime import UTC, datetime
+
+    sources = (
+        ("fred_sp500.csv", "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500", "SP500"),
+        (
+            "cboe_vix.csv",
+            "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+            "CLOSE",
+        ),
+    )
+    snapshots = []
+    for name, url, column in sources:
+        path = output_dir / name
+        size = _download(url, path, max_bytes=2 * 1024 * 1024)
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            values = [row[column] for row in csv.DictReader(stream)]
+        snapshots.append(
+            {
+                "name": name,
+                "url": url,
+                "path": str(path),
+                "bytes": size,
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "audit": {
+                    "rows": len(values),
+                    "valid_values": sum(value not in ("", ".") for value in values),
+                },
+            }
+        )
+    _write_json(
+        manifest,
+        {"retrieved_at_utc": datetime.now(UTC).isoformat(), "snapshots": snapshots},
+    )
+    typer.echo(str(manifest))
+
+
+@gdelt_app.command("catalog")
+def gdelt_catalog(
+    output: Annotated[Path, typer.Option()] = Path("data/raw/gdelt/masterfilelist.txt"),
+) -> None:
+    """Download the GDELT master file list used to verify every batch."""
+    size = _download(
+        "https://data.gdeltproject.org/gdeltv2/masterfilelist.txt", output, max_bytes=1 << 30
+    )
+    typer.echo(f"{output} {size} bytes")
+
+
+@news_app.command("fetch-model")
+def news_fetch_model(
+    output_root: Annotated[Path, typer.Option()] = Path(".cache/models/ProsusAI_finbert"),
+) -> None:
+    """Download the five pinned FinBERT files into a directory named after the revision."""
+    import shutil
+
+    from huggingface_hub import hf_hub_download
+
+    from newsvar.nlp.encoder import MODEL_REVISION, REQUIRED_MODEL_FILES, model_fingerprint
+
+    destination = output_root / MODEL_REVISION
+    destination.mkdir(parents=True, exist_ok=True)
+    for name in REQUIRED_MODEL_FILES:
+        cached = hf_hub_download("ProsusAI/finbert", name, revision=MODEL_REVISION)
+        shutil.copyfile(cached, destination / name)
+    typer.echo(f"{destination} fingerprint={model_fingerprint(destination).identity}")

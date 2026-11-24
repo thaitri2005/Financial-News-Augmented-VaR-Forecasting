@@ -4,13 +4,13 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from newsvar.calendar import CalendarSnapshot, build_xnys_snapshot
-from newsvar.ingestion.market import MarketSource
-from newsvar.labels import (
+from newsvar.data.calendar import CalendarSnapshot, build_xnys_snapshot
+from newsvar.data.labels import (
     HISTORICAL_AVAILABILITY_BASIS,
     build_labels,
     historical_prior_session_availability,
 )
+from newsvar.data.market import MarketSource
 
 
 @pytest.fixture(scope="module")

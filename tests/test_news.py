@@ -5,8 +5,8 @@ from datetime import UTC, date, datetime, timedelta
 import numpy as np
 import pytest
 
-from newsvar import news
-from newsvar.calendar import build_xnys_snapshot
+from newsvar.data import news
+from newsvar.data.calendar import build_xnys_snapshot
 
 T0 = datetime(2020, 3, 16, 12, 0, tzinfo=UTC)
 

@@ -3,8 +3,8 @@ from datetime import date
 
 import pytest
 
-from newsvar.calendar import build_xnys_snapshot
-from newsvar.metrics import (
+from newsvar.data.calendar import build_xnys_snapshot
+from newsvar.evaluation.metrics import (
     MetricInputError,
     QuantileObservation,
     breach,
@@ -55,7 +55,7 @@ def test_transition_counts_do_not_bridge_missing_xnys_session() -> None:
 
 
 def test_coverage_tests_handle_empty_cells_without_pseudocounts() -> None:
-    from newsvar.metrics import christoffersen_test, kupiec_test
+    from newsvar.evaluation.metrics import christoffersen_test, kupiec_test
 
     exact = kupiec_test(25, 500, 0.05)
     assert exact["statistic"] == pytest.approx(0.0, abs=1e-9) and exact["p_value"] == 1.0
@@ -68,7 +68,7 @@ def test_coverage_tests_handle_empty_cells_without_pseudocounts() -> None:
 
 
 def test_block_bootstrap_keeps_gaps_and_is_seeded() -> None:
-    from newsvar.metrics import MetricInputError, block_bootstrap_mean
+    from newsvar.evaluation.metrics import MetricInputError, block_bootstrap_mean
 
     grid = [0.001] * 100 + [None] * 20 + [0.001] * 100
     result = block_bootstrap_mean(grid, block_length=20, replications=200)

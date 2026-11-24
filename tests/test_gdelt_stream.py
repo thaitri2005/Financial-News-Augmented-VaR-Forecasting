@@ -9,7 +9,7 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import pytest
 
-from newsvar.ingestion import gdelt
+from newsvar.data import gdelt
 
 
 def _row(record: str, themes: str, *, title: str | None, location: str = "") -> str:

@@ -8,13 +8,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from newsvar import feature_table as ft
-from newsvar import news
-from newsvar.calendar import CalendarSnapshot, build_xnys_snapshot
-from newsvar.datasets import materialize_market_dataset
-from newsvar.ingestion.market import MarketSource
-from newsvar.provenance import canonical_json, sha256
-from newsvar.scoring import SCORE_SCHEMA
+from newsvar.data import news
+from newsvar.data.calendar import CalendarSnapshot, build_xnys_snapshot
+from newsvar.data.datasets import materialize_market_dataset
+from newsvar.data.market import MarketSource
+from newsvar.features import table as ft
+from newsvar.hashing import canonical_json, sha256
+from newsvar.nlp.scoring import SCORE_SCHEMA
 
 CORPUS_START = date(2019, 9, 2)
 

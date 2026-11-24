@@ -3,7 +3,7 @@ from datetime import date
 import numpy as np
 import pytest
 
-from newsvar.garch import (
+from newsvar.models.garch import (
     MAX_PERSISTENCE,
     GarchFitError,
     _second_step,

@@ -1,6 +1,6 @@
 import pytest
 
-from newsvar.features import (
+from newsvar.features.definitions import (
     FeatureInputError,
     HeadlineScore,
     NewsWindow,
@@ -51,7 +51,12 @@ def test_news_features_use_fixed_lookbacks_and_label_id_tie_rule() -> None:
 
 
 def test_sampled_window_scales_intensity_and_measures_coverage_on_designated() -> None:
-    from newsvar.features import FeatureInputError, HeadlineScore, NewsWindow, news_features
+    from newsvar.features.definitions import (
+        FeatureInputError,
+        HeadlineScore,
+        NewsWindow,
+        news_features,
+    )
 
     score = HeadlineScore(0.1, 0.6, 0.3)
     history = [NewsWindow(24.0, True, 10, (score,) * 10) for _ in range(63)]

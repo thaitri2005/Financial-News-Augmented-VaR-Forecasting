@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from newsvar.baselines import (
+from newsvar.models.baselines import (
     BaselineInputError,
     gaussian_ewma,
     historical_simulation,
