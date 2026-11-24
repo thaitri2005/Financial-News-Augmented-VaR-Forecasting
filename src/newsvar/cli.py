@@ -352,18 +352,22 @@ def gdelt_extract(
             pending.append(day)
     typer.echo(f"pending_days={len(pending)} catalog_sha256={catalog_sha256}")
     started, done = time.monotonic(), 0
-    jobs = (
-        (day.isoformat(), str(catalog_path), str(output_root), catalog_sha256, threads)
-        for day in pending
-        if not max_seconds or time.monotonic() - started < max_seconds
-    )
+    chunk = processes * 4
     with Pool(processes=processes) as pool:
-        for day_text, ok_batches, title_rows in pool.imap(_gdelt_day_worker, jobs):
-            done += 1
-            typer.echo(
-                f"{day_text} ok_batches={ok_batches} titles={title_rows} "
-                f"done={done}/{len(pending)} elapsed={time.monotonic() - started:.0f}s"
-            )
+        for offset in range(0, len(pending), chunk):
+            # The budget is checked between small chunks; queued work is never abandoned.
+            if max_seconds and time.monotonic() - started >= max_seconds:
+                break
+            jobs = [
+                (day.isoformat(), str(catalog_path), str(output_root), catalog_sha256, threads)
+                for day in pending[offset : offset + chunk]
+            ]
+            for day_text, ok_batches, title_rows in pool.imap(_gdelt_day_worker, jobs):
+                done += 1
+                typer.echo(
+                    f"{day_text} ok_batches={ok_batches} titles={title_rows} "
+                    f"done={done}/{len(pending)} elapsed={time.monotonic() - started:.0f}s"
+                )
     typer.echo(f"finished days={done} remaining={len(pending) - done}")
 
 

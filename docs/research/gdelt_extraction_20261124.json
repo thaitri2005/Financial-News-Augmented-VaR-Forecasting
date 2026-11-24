@@ -1,0 +1,42 @@
+{
+ "scope": "Outcome-blind GDELT extraction ledger summary",
+ "range": [
+  "2019-09-01",
+  "2025-12-31"
+ ],
+ "days": 2314,
+ "bytes": 1240159688565,
+ "rows": 304932742,
+ "titled_rows": 301084249,
+ "matched_rows": 14312034,
+ "batch_status": {
+  "absent_from_catalog": 5054,
+  "fetch_failed": 91,
+  "ok": 216999
+ },
+ "non_final_days": {
+  "2020-12-14": {
+   "fetch_failed_batches": 1,
+   "first": "20201214121500",
+   "last": "20201214121500"
+  },
+  "2022-11-10": {
+   "fetch_failed_batches": 8,
+   "first": "20221110220000",
+   "last": "20221110234500"
+  },
+  "2022-11-11": {
+   "fetch_failed_batches": 75,
+   "first": "20221111000000",
+   "last": "20221111183000"
+  },
+  "2023-03-23": {
+   "fetch_failed_batches": 7,
+   "first": "20230323130000",
+   "last": "20230323143000"
+  }
+ },
+ "catalog_sha256": "3797ec66058330255236dc6cc0c196dff5bfc11afe3545e4f5f9f79e2e9622f7",
+ "adapter_version": "gdelt_gkg_stream_v1",
+ "note": "fetch_failed batches are listed in the catalog but the archive returned HTTP 404 on repeated attempts on 2026-11-24; they are treated as missing, never as empty."
+}

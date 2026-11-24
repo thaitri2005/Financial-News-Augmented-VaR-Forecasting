@@ -1,0 +1,40 @@
+{
+ "corpus_id": "d2287582812d09decd6a280f1b7cb83ccbccc0f89eacf35b97bc3710208ebbe5",
+ "event_status": {
+  "duplicate_title": 2702423,
+  "duplicate_url": 32,
+  "retained": 3794159
+ },
+ "excluded_matched_rows": {
+  "no_title": 7730,
+  "no_us_location": 7640039,
+  "title_too_short_or_nonalphabetic": 2516
+ },
+ "identity": {
+  "day_tables_sha256": "1fda79cb45889b201c74d734ec558f44b29fcc4f396edc0c4b8e22fb8b8c2d6b",
+  "dedup_rule": "exact_casefold_title_or_url_72h_v1",
+  "end": "2025-12-31",
+  "min_title_characters": 10,
+  "normalization": "headline_text_v1",
+  "relevance_rule": "gdelt_en_web_us_stockmarket_title_v1",
+  "schema_version": "news_corpus_v2",
+  "source": "gdelt_gkg_v2_english",
+  "start": "2019-09-23"
+ },
+ "scope": "Outcome-blind news corpus manifest; no title text.",
+ "tables": {
+  "batches": {
+   "rows": 220032,
+   "sha256": "fa1499eafaa76e092bb507e5c0dfa8ca69b57f9bd69fd9ec208553c0db97e962"
+  },
+  "events": {
+   "rows": 6496614,
+   "sha256": "9158f8a305b1706dfc25da3cc4d19c85156ef702fed94605810a24032435f090"
+  },
+  "titles": {
+   "rows": 3582698,
+   "sha256": "581d9af2b02a5de5579f3ebd705f1f42528410a0aa7eece8949e42e6846e458f"
+  }
+ },
+ "unique_retained_titles": 3582698
+}
