@@ -42,6 +42,8 @@ Public, committed outputs are the JSON records in [records/](records/) and the f
 
 ## Package layout
 
+The package also has `__main__` so that `python -m newsvar` works.
+
 | Package | Modules | Responsibility |
 |---|---|---|
 | `newsvar.data` | `calendar`, `market`, `labels`, `datasets`, `ohlc` | Exchange calendar and forecast origins; price sources; return labels; versioned market tables; daily bars |
@@ -73,7 +75,7 @@ Dependencies point one way: `study` → `evaluation` → `models`, `features` �
 - `vol develop` drops every row after the development end before fitting.
 - `vol preregister` refuses to run with uncommitted source changes. It records inputs by hash, source by content, every protocol constant and the eligible holdout row counts.
 - `vol evaluate` requires the registration to be committed, compares every recorded value with the code and data, writes an "opened" marker before computing any outcome, and refuses a second run.
-- The study 1 commands have equivalent gates.
+- The study 1 commands are weaker: `study preregister` needs a clean source tree and `study evaluate` checks the registration's hash and inputs and refuses to overwrite its output, but there is no opened marker and no source-content check.
 
 **One code path for study and operation.** `forecast_all` produces every forecast. In study mode it forecasts only sessions with known outcomes so all models share one sample. In operations it also forecasts a session whose outcome is unknown, and an `as_of` time ensures that an unfinished session contributes no outcome.
 
@@ -102,7 +104,21 @@ uv run newsvar update
 uv run newsvar forecast
 ```
 
-`update` refreshes prices, bars, the calendar, GDELT titles (re-extracting the last three days, because a day extracted before it ended is incomplete), the corpus and scores. `forecast` issues volatility, 95% and 99% VaR and ES for the next session in each set-up that has reached its information time, for the baseline and the text model, and appends the record to `data/forecasts/log.jsonl`. Earlier log entries are never rewritten, so the log is a prospective record with real issue times.
+**`update`** refreshes everything and then replaces `data/operations.json` atomically, so a failed update leaves the previous consistent state in use.
+
+- Prices and bars go into a new dated directory, `data/raw/market/<timestamp>/`. Nothing a study settings file points to is overwritten.
+- GDELT extraction checks every day against the current catalog. Batches already verified are reused; only batches that are new in the catalog or failed before are downloaded, so a network failure cannot replace verified data. Batches the archive answers with HTTP 404 are recorded as permanently missing.
+- The corpus from the previous update is deleted unless a study settings file refers to it.
+
+**`forecast`** considers the session that has not closed yet and the one after it. For each set-up it issues volatility, 95% and 99% VaR and ES from the baseline and the text model, but only when:
+
+1. the set-up's information time has passed;
+2. the data were refreshed after that time (`updated_at_utc` in the settings);
+3. verified news batches reach the end of the news window.
+
+Otherwise the set-up is reported as unavailable with the reason. A session counts as closed only relative to the data refresh time, so a partial price bar is never read as an outcome. Each record carries `timing`: `on_time` if it was issued before the target period (pre-close) or within 30 minutes of the open (at-open), else `late`. Records are appended to `data/forecasts/log.jsonl` and never rewritten.
+
+A typical day: run both commands shortly after 15:30 New York time for the next session's pre-close forecast, and shortly after 09:30 for the at-open forecast. Each run takes about 10 minutes, so an at-open forecast issued at 09:45 is on time and a pre-close one issued at 15:45 is on time.
 
 ## Not built
 

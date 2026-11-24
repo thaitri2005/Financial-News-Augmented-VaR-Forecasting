@@ -59,9 +59,12 @@ Each needs a fresh test period; the present holdout is used up for this design.
 
 ### 5. Engineering
 
-- A scheduler entry and a small monitor for the two daily commands.
-- An automated end-to-end test of the study pipeline on synthetic data.
-- Faster daily update: rebuild only the newest part of the corpus and term shares instead of everything.
+- A scheduler entry and a small monitor for the two daily commands, with a lock so they cannot overlap.
+- An automated end-to-end test of `build_panel` and the study pipeline on synthetic files.
+- Faster daily update: rebuild only the newest part of the corpus and term shares instead of everything. `forecast` currently needs about 4 GiB of memory, mostly for the term index, and this grows with the corpus.
+- A check that Yahoo's opening price for SPY shortly after 09:30 equals the final official open.
+- One shared helper for file hashing and for registration checks, which are duplicated between the two studies.
+- The same strict gates for the study 1 commands as for study 2.
 
 ## What not to do
 

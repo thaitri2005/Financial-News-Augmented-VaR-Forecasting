@@ -48,6 +48,7 @@ _TITLE = re.compile(rb"<PAGE_TITLE>(.*?)</PAGE_TITLE>", re.DOTALL)
 OK = "ok"
 ABSENT = "absent_from_catalog"
 FETCH_FAILED = "fetch_failed"
+NOT_FOUND = "not_found"
 SIZE_MISMATCH = "size_mismatch"
 MD5_MISMATCH = "md5_mismatch"
 BAD_ARCHIVE = "bad_archive"
@@ -72,6 +73,10 @@ TITLE_SCHEMA = pa.schema(
 
 class GdeltError(ValueError):
     """A catalog, archive payload, or committed day violates the adapter contract."""
+
+
+class GdeltNotFound(GdeltError):
+    """The archive answered HTTP 404 for a catalogued batch: it is permanently missing."""
 
 
 @dataclass(frozen=True)
@@ -227,7 +232,9 @@ def http_fetch(stamp: str, *, attempts: int = 4, timeout: float = 120.0) -> byte
             return payload
         except urllib.error.HTTPError as error:
             last = error
-            if error.code in {403, 404, 407}:
+            if error.code == 404:
+                raise GdeltNotFound(f"Batch {stamp} is not in the archive.") from error
+            if error.code in {403, 407}:
                 break
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as error:
             last = error
@@ -247,6 +254,8 @@ def process_batch(
 
     try:
         payload = fetch(entry.stamp)
+    except GdeltNotFound:
+        return failed(NOT_FOUND)
     except GdeltError:
         return failed(FETCH_FAILED)
     digest = hashlib.md5(payload, usedforsecurity=False).hexdigest()
@@ -287,11 +296,62 @@ def load_day(root: Path, day: date) -> dict[str, object] | None:
     return manifest
 
 
-def day_is_final(manifest: Mapping[str, object]) -> bool:
-    """A day needs no retry when every catalogued batch was verified and parsed."""
+def day_is_final(
+    manifest: Mapping[str, object], catalog: Mapping[str, CatalogEntry] | None = None
+) -> bool:
+    """A day needs no further work when every catalogued batch is verified or known missing.
+
+    Without ``catalog`` this uses the statuses recorded at extraction. With the
+    current catalog it also notices batches that were catalogued after the day
+    was extracted, which happens when a day is extracted before it has ended.
+    """
     batches = manifest["batches"]
     assert isinstance(batches, list)
-    return all(batch["status"] in {OK, ABSENT} for batch in batches)
+    status = {batch["stamp"]: batch for batch in batches}
+    if any(batch["status"] not in {OK, ABSENT, NOT_FOUND} for batch in batches):
+        return False
+    if catalog is None:
+        return True
+    return all(
+        stamp not in catalog
+        or batch["status"] == NOT_FOUND
+        or (batch["status"] == OK and batch["md5"] == catalog[stamp].md5)
+        for stamp, batch in status.items()
+    )
+
+
+def _commit_day(
+    root: Path, day: date, manifest: dict[str, object], records: list[dict[str, object]] | None
+) -> None:
+    """Atomically replace a day. With ``records`` of None only the manifest is rewritten."""
+    destination = day_directory(root, day)
+    if records is None:
+        stage_file = destination / f".manifest.{uuid.uuid4().hex}.staging"
+        _sync_write(stage_file, canonical_json(manifest) + b"\n")
+        os.replace(stage_file, destination / "manifest.json")
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    stage = root / f".{day.isoformat()}.{uuid.uuid4().hex}.staging"
+    stage.mkdir()
+    table_path = stage / "titles.parquet"
+    pq.write_table(
+        pa.Table.from_pylist(records, schema=TITLE_SCHEMA), table_path, compression="zstd"
+    )
+    with table_path.open("r+b") as stream:
+        os.fsync(stream.fileno())
+        stream.seek(0)
+        manifest["titles_sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
+    manifest["title_rows"] = len(records)
+    _sync_write(stage / "manifest.json", canonical_json(manifest) + b"\n")
+    if destination.exists():
+        retired = root / f".{day.isoformat()}.{uuid.uuid4().hex}.retired"
+        os.replace(destination, retired)
+        os.replace(stage, destination)
+        for leftover in retired.iterdir():
+            leftover.unlink()
+        retired.rmdir()
+    else:
+        os.replace(stage, destination)
 
 
 def extract_day(
@@ -306,37 +366,43 @@ def extract_day(
 ) -> dict[str, object]:
     """Extract one UTC day and atomically commit its titles plus per-batch ledger.
 
-    A committed day whose catalogued batches all verified is returned unchanged
-    unless ``force`` is set. Force is needed for recent days: a day extracted
-    before it ended lists only the batches published so far.
+    Batches already verified against the same catalog checksum are reused, so a
+    rerun downloads only batches that are new in the catalog or failed before,
+    and a transient failure can never replace verified data. ``force`` discards
+    the existing day and downloads everything again.
     """
-    existing = load_day(root, day)
-    if existing is not None and day_is_final(existing) and not force:
+    existing = None if force else load_day(root, day)
+    if existing is not None and day_is_final(existing, catalog):
         return existing
     stamps = expected_stamps(day)
-    listed = [catalog[stamp] for stamp in stamps if stamp in catalog]
+    kept: dict[str, dict[str, object]] = {}
+    kept_records: list[dict[str, object]] = []
+    if existing is not None:
+        previous = existing["batches"]
+        assert isinstance(previous, list)
+        for batch in previous:
+            entry = catalog.get(batch["stamp"])
+            if batch["status"] == NOT_FOUND or (
+                batch["status"] == OK and entry is not None and entry.md5 == batch["md5"]
+            ):
+                kept[batch["stamp"]] = batch
+        verified = {stamp for stamp, batch in kept.items() if batch["status"] == OK}
+        table = pq.read_table(day_directory(root, day) / "titles.parquet").to_pylist()
+        kept_records = [row for row in table if row["batch_stamp"] in verified]
+    listed = [catalog[stamp] for stamp in stamps if stamp in catalog and stamp not in kept]
     with ThreadPoolExecutor(max_workers=max(1, threads)) as pool:
         outcomes = list(pool.map(lambda entry: process_batch(entry, fetch), listed))
-    results = {result.stamp: result for result, _ in outcomes}
-    records = [record for _, batch_records in outcomes for record in batch_records]
-    records.sort(key=lambda record: (str(record["batch_stamp"]), str(record["gkg_record_id"])))
+    results: dict[str, dict[str, object]] = {
+        **kept,
+        **{result.stamp: result.__dict__ for result, _ in outcomes},
+    }
+    new_records = [record for _, batch_records in outcomes for record in batch_records]
     batches = [
-        results[stamp].__dict__
+        results[stamp]
         if stamp in results
         else BatchResult(stamp, ABSENT, 0, "", 0, 0, 0, 0).__dict__
         for stamp in stamps
     ]
-    root.mkdir(parents=True, exist_ok=True)
-    stage = root / f".{day.isoformat()}.{uuid.uuid4().hex}.staging"
-    stage.mkdir()
-    table_path = stage / "titles.parquet"
-    pq.write_table(
-        pa.Table.from_pylist(records, schema=TITLE_SCHEMA), table_path, compression="zstd"
-    )
-    with table_path.open("r+b") as stream:
-        os.fsync(stream.fileno())
-        stream.seek(0)
-        digest = hashlib.file_digest(stream, "sha256").hexdigest()
     manifest: dict[str, object] = {
         "schema_version": "gdelt_title_day_v1",
         "adapter_version": ADAPTER_VERSION,
@@ -344,21 +410,18 @@ def extract_day(
         "catalog_sha256": catalog_sha256,
         "relevance_theme": RELEVANCE_THEME.decode(),
         "retrieved_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
-        "titles_sha256": digest,
-        "title_rows": len(records),
         "batches": batches,
     }
-    _sync_write(stage / "manifest.json", canonical_json(manifest) + b"\n")
-    destination = day_directory(root, day)
-    if destination.exists():
-        retired = root / f".{day.isoformat()}.{uuid.uuid4().hex}.retired"
-        os.replace(destination, retired)
-        os.replace(stage, destination)
-        for leftover in retired.iterdir():
-            leftover.unlink()
-        retired.rmdir()
-    else:
-        os.replace(stage, destination)
+    newly_verified = any(result.status == OK for result, _ in outcomes)
+    if existing is not None and not newly_verified:
+        # No new title rows: keep the committed table byte for byte and update the ledger only.
+        manifest["titles_sha256"] = existing["titles_sha256"]
+        manifest["title_rows"] = existing["title_rows"]
+        _commit_day(root, day, manifest, None)
+        return manifest
+    records = kept_records + new_records
+    records.sort(key=lambda record: (str(record["batch_stamp"]), str(record["gkg_record_id"])))
+    _commit_day(root, day, manifest, records)
     return manifest
 
 

@@ -67,6 +67,7 @@ TEXT_MAX_FEATURES = 5000
 TEXT_MIN_DOCUMENTS = 200
 BOOTSTRAP_BLOCKS = (20, 10, 5)
 OPEN_BUFFER = timedelta(minutes=15)
+ISSUE_GRACE = timedelta(minutes=30)
 BASE_FEATURES = {
     "pre_close": ("har_d", "har_w", "har_m", "log_vix"),
     "at_open": ("har_d", "har_w", "har_m", "log_vix", "gap"),
@@ -223,10 +224,14 @@ def build_panel(inputs: VolatilityInputs, *, as_of: datetime | None = None) -> l
             "pre_close": (prior2.cutoff_utc, prior.cutoff_utc),
             "at_open": (prior.close_utc, origin.open_utc - OPEN_BUFFER),
         }
+        # A forecast issued after these times no longer precedes its target period.
+        row["deadline_pre_close"] = prior.close_utc
+        row["deadline_at_open"] = origin.open_utc + ISSUE_GRACE
         for contract, (start, end) in windows.items():
             summary = tone.query(start, end)
             hours = (end - start).total_seconds() / 3600.0
             row[f"window_{contract}"] = (start, end)
+            row[f"ingested_{contract}"] = tone.ingested_through(end)
             row[f"complete_{contract}"] = summary.complete
             row[f"scored_{contract}"] = summary.scored
             row[f"covered_{contract}"] = (
@@ -901,6 +906,17 @@ def verify_registration(
         raise VolatilityStudyError("Registered dates are out of order.")
 
 
+def check_holdout_rows(rows: Sequence[Mapping[str, Any]], registration: Mapping[str, Any]) -> None:
+    """Compare outcome-blind eligible row counts on the holdout with the registered counts."""
+    counted = panel_summary(
+        rows,
+        start=date.fromisoformat(registration["holdout"][0]),
+        through=date.fromisoformat(registration["holdout"][1]),
+    )
+    if json.loads(canonical_json(counted)) != registration["holdout_eligible_rows"]:
+        raise VolatilityStudyError("Eligible holdout rows differ from the registered counts.")
+
+
 def holm(p_values: Mapping[str, float]) -> dict[str, float]:
     """Holm step-down adjusted p-values."""
     ordered = sorted(p_values.items(), key=lambda item: item[1])
@@ -922,13 +938,7 @@ def evaluate(
     """Run the frozen protocol on the holdout; slices reuse the same forecasts."""
     verify_registration(inputs, registration, source=source)
     rows = build_panel(inputs)
-    counted = panel_summary(
-        rows,
-        start=date.fromisoformat(registration["holdout"][0]),
-        through=date.fromisoformat(registration["holdout"][1]),
-    )
-    if json.loads(canonical_json(counted)) != registration["holdout_eligible_rows"]:
-        raise VolatilityStudyError("Eligible holdout rows differ from the registered counts.")
+    check_holdout_rows(rows, registration)
     start, end = (date.fromisoformat(value) for value in registration["holdout"])
     fresh = date.fromisoformat(registration["fresh_slice_start"])
     forecasts = all_forecasts(rows, NEWS_VARIANTS, text_shares(inputs, rows))

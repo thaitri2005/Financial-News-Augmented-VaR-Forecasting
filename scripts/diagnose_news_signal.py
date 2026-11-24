@@ -1,4 +1,4 @@
-"""Exploratory diagnostics behind docs/next-methodology.md.
+"""Exploratory diagnostics on study 1 data, reported in docs/research-log.md.
 
 Uses only rows with target dates up to 2023-12-13 (training and development).
 The locked test period is never read. Needs the private artifacts described in

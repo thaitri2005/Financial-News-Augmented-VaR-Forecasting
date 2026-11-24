@@ -41,9 +41,10 @@ class Bar:
         values = (self.open, self.high, self.low, self.close)
         if not all(math.isfinite(value) and value > 0 for value in values):
             raise OhlcError("Bar prices must be positive and finite.")
-        if self.low > min(self.open, self.close) + 1e-6 or self.high < max(
-            self.open, self.close
-        ) - 1e-6:
+        if (
+            self.low > min(self.open, self.close) + 1e-6
+            or self.high < max(self.open, self.close) - 1e-6
+        ):
             raise OhlcError("Bar high/low do not bracket its open/close.")
 
 
@@ -108,8 +109,12 @@ def validate_tracking(bars: dict[date, Bar], reference: dict[date, float]) -> di
     common = sorted(set(bars).intersection(reference))
     if len(common) < 250:
         raise OhlcError("Too few common sessions to validate tracking.")
-    etf = [math.log(bars[b].close / bars[a].close) for a, b in zip(common, common[1:], strict=False)]
-    index = [math.log(reference[b] / reference[a]) for a, b in zip(common, common[1:], strict=False)]
+    etf = [
+        math.log(bars[b].close / bars[a].close) for a, b in zip(common, common[1:], strict=False)
+    ]
+    index = [
+        math.log(reference[b] / reference[a]) for a, b in zip(common, common[1:], strict=False)
+    ]
     mean_etf, mean_index = sum(etf) / len(etf), sum(index) / len(index)
     covariance = sum((x - mean_etf) * (y - mean_index) for x, y in zip(etf, index, strict=True))
     scale = math.sqrt(

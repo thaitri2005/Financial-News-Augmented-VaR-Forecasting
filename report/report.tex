@@ -425,33 +425,39 @@ writes a checksummed, content-addressed artifact and can be resumed.
 \textbf{Command} & \textbf{What it does} \\
 \midrule
 \texttt{newsvar update} & Refreshes prices, the calendar, GDELT titles, the corpus and scores (about 5 minutes) \\
-\texttt{newsvar forecast} & Issues volatility, VaR and ES for the next session and appends to a log \\
+\texttt{newsvar forecast} & Issues volatility, VaR and ES for each set-up whose information is complete and fresh, labels the record on time or late, and appends to a log \\
 \texttt{newsvar vol develop / preregister / evaluate / report} & The staged, gated study \\
 \texttt{newsvar gdelt extract}, \texttt{news corpus}, \texttt{news score} & The data stages \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{A demonstration run.} On 24 November 2026 at 14:51 New York time, after both forecast
-times for that session had passed, the system produced for that day's session a 95\% VaR of
-$-3.5\%$ and ES of $-5.2\%$ (pre-close set-up, index close-to-close) and a 95\% VaR of
-$-2.4\%$ (at-open set-up, SPY open-to-close). The pre-close forecast used the VIX close of
-20 November (35.9); the at-open forecast that of 23 November (26.6). This entry shows that the
-commands work; it is not a prospective forecast.
+\textbf{First prospective forecast.} On 24 November 2026 at 15:43 New York time, 13 minutes
+after the information cutoff and 17 minutes before the close, the system issued the pre-close
+forecast for the session of 25 November: a 95\% VaR of $-3.25\%$ and ES of $-4.77\%$ from the
+text model, against $-3.70\%$ and $-5.23\%$ from the baseline. The record is marked on time
+and is the first entry of the prospective log that counts as clean evidence. Earlier runs the
+same day, issued after their forecast times, are marked late in the log and serve only as
+demonstrations. The at-open forecast for 25 November was correctly refused because its
+information time had not been reached.
 
 \textbf{Resources.} Everything ran on four CPU cores and 15\,GiB of memory: about three hours to
 stream the news archive, five hours to score titles with FinBERT (not needed by the text
 model), and minutes for everything else.
 
-\textbf{Quality control.} The code has 105 automated tests on synthetic data, including tests
+\textbf{Quality control.} The code has 110 automated tests on synthetic data, including tests
 that changing future data cannot change an earlier forecast. Two AI reviewer agents, started by
 the project's own AI agent and working read-only, audited the second study before its test was
 run. They found no look-ahead; they did find a stale opening price, a mis-sized test, in-sample
 tail estimates and weak registration checks, all of which were fixed before registration.
-Two more reviewed the finished project: one audited every number and claim in this report
+Two more reviewed the finished project. One audited every number and claim in this report
 against the records and made it more cautious in several places (the fragility of H2, the
-2026 slice, coverage wording); the other audited the code and the operational commands.
-No human has reviewed the work.
+2026 slice, coverage wording). The other audited the code and the operational commands; it
+found no look-ahead, but it found that the live forecast could go out with stale or partial
+inputs and that re-downloading could overwrite verified data, both now fixed. It also found
+that one source file (the price-bar parser) had never been committed because of an ignore
+rule, so that file lies outside the source hash of the registration; its timestamp predates
+the registration. No human has reviewed the work.
 
 \section{Conclusion}
 

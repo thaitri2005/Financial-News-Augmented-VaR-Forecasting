@@ -24,7 +24,6 @@ MUTED = "#52514e"
 GRID = "#e4e3df"
 BLUE = "#2a78d6"
 ORANGE = "#eb6834"
-AQUA = "#1baf7a"
 CONTRACT_LABEL = {"pre_close": "Pre-close", "at_open": "At-open"}
 MODEL_LABEL = {
     "historical_simulation": "Historical simulation (250 days)",

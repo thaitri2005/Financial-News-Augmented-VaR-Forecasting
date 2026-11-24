@@ -1,4 +1,8 @@
-"""Small stage CLI; implemented commands do not imply later pipeline readiness."""
+"""Command-line interface: data stages, the two studies, and daily operation.
+
+Run every command from the repository root; paths in settings files are
+relative to it.
+"""
 
 import json
 import sys
@@ -344,7 +348,7 @@ def gdelt_extract(
     ] = 0,
     force: Annotated[
         bool,
-        typer.Option(help="Re-extract committed days; use for days extracted before they ended."),
+        typer.Option(help="Discard committed days in the range and download them again."),
     ] = False,
 ) -> None:
     """Stream catalogued GKG batches, keep relevance-matched titles, and commit per UTC day."""
@@ -353,16 +357,18 @@ def gdelt_extract(
     from datetime import date as date_type
     from multiprocessing import Pool
 
-    from newsvar.data.gdelt import day_is_final, iter_days, load_day
+    from newsvar.data.gdelt import day_is_final, iter_days, load_day, read_catalog
 
     first, last = date_type.fromisoformat(start), date_type.fromisoformat(end)
     with catalog_path.open("rb") as stream:
         catalog_sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
+    catalog = read_catalog(catalog_path, start=first, end=last)
     pending = []
     for day in iter_days(first, last):
         manifest = load_day(output_root, day)
-        if force or manifest is None or not day_is_final(manifest):
+        if force or manifest is None or not day_is_final(manifest, catalog):
             pending.append(day)
+    del catalog
     typer.echo(f"pending_days={len(pending)} catalog_sha256={catalog_sha256}")
     started, done = time.monotonic(), 0
     chunk = processes * 4
@@ -518,8 +524,17 @@ def _study_inputs(config: Path):  # type: ignore[no-untyped-def]
 
 
 def _write_json(path: Path, payload: object) -> None:
+    """Write JSON atomically; NaN is refused so records stay valid JSON."""
+    import os
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    stage = path.with_name(f".{path.name}.staging")
+    text = json.dumps(payload, indent=1, sort_keys=True, allow_nan=False) + "\n"
+    with stage.open("w", encoding="utf-8") as stream:
+        stream.write(text)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(stage, path)
 
 
 CONFIG_OPTION = typer.Option(exists=True, dir_okay=False, help="Study input paths JSON.")
@@ -840,9 +855,11 @@ def _vol_setup(config: Path):  # type: ignore[no-untyped-def]
     else:
         text = study.text_shares(inputs, rows)
         cache.parent.mkdir(parents=True, exist_ok=True)
+        stage = cache.with_name(f".{cache.stem}.staging.npz")
         np.savez_compressed(
-            cache, pre_close=text["pre_close"], at_open=text["at_open"], terms=text["terms"]
+            stage, pre_close=text["pre_close"], at_open=text["at_open"], terms=text["terms"]
         )
+        stage.replace(cache)
     return study, settings, inputs, rows, text
 
 
@@ -862,8 +879,19 @@ def _source_state() -> dict[str, str]:
         capture_output=True,
         text=True,
     ).stdout.strip()
-    if dirty:
-        typer.echo("Commit source changes first: the protocol is tied to source content.", err=True)
+    ignored = subprocess.run(
+        ["git", "status", "--porcelain", "--ignored", "--", "src"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    hidden = [line for line in ignored.splitlines() if line.startswith("!!") and ".py" in line]
+    if dirty or hidden:
+        typer.echo(
+            "Commit source changes first: the protocol is tied to source content. "
+            + (f"Ignored source files: {hidden}" if hidden else ""),
+            err=True,
+        )
         raise typer.Exit(4)
     tree = subprocess.run(
         ["git", "rev-parse", "HEAD:src"], check=True, capture_output=True, text=True
@@ -999,7 +1027,10 @@ def vol_evaluate(
         raise typer.Exit(4)
     inputs = _vol_inputs(json.loads(config.read_text(encoding="utf-8")))
     try:
+        # Everything that can be checked without reading an outcome is checked before
+        # the registration is marked as opened.
         study.verify_registration(inputs, record_in, source=source)
+        study.check_holdout_rows(study.build_panel(inputs), record_in)
     except study.VolatilityStudyError as error:
         typer.echo(f"Evaluation refused: {error}", err=True)
         raise typer.Exit(4) from error
@@ -1014,7 +1045,9 @@ def vol_evaluate(
     except (ValueError, KeyError) as error:
         typer.echo(f"Evaluation failed after the holdout was opened: {error!r}", err=True)
         raise typer.Exit(5) from error
-    pq.write_table(pa.Table.from_pylist(rows), ledger)
+    stage = ledger.with_name(f".{ledger.name}.staging")
+    pq.write_table(pa.Table.from_pylist(rows), stage)
+    stage.replace(ledger)
     _write_json(output, record)
     typer.echo(
         json.dumps({k: v for k, v in record["decisions"].items() if k != "pooled"}, indent=2)
@@ -1061,6 +1094,7 @@ def vol_report(
 
 
 OPS_CONFIG = typer.Option(exists=True, dir_okay=False, help="Operations settings JSON.")
+STUDY_CONFIGS = (Path("data/study.json"), Path("data/volatility_study.json"))
 
 
 @app.command()
@@ -1068,7 +1102,6 @@ def update(
     config: Annotated[Path, typer.Option(help="Operations settings JSON to write.")] = Path(
         "data/operations.json"
     ),
-    refresh_days: Annotated[int, typer.Option(min=1, max=30)] = 3,
     corpus_start: Annotated[str, typer.Option()] = "2019-09-23",
     sampling_rate: Annotated[float, typer.Option(min=0.01, max=1.0)] = 0.27,
     model_snapshot: Annotated[Path, typer.Option()] = Path(
@@ -1077,31 +1110,55 @@ def update(
 ) -> None:
     """Refresh every input up to now and write the settings used by ``forecast``.
 
-    Steps: market closes, VIX and bars; an exchange calendar reaching two weeks
-    ahead; the GDELT catalog; titles for any missing day plus the most recent
-    days again; the corpus; FinBERT scores for newly sampled titles.
+    Steps: market closes, VIX and bars into a new dated snapshot directory; an
+    exchange calendar reaching two weeks ahead; the GDELT catalog; titles for
+    every day that is missing or has newly catalogued batches; the corpus;
+    FinBERT scores for newly sampled titles. The settings file is replaced only
+    after every step succeeded, so a failed update leaves the previous
+    consistent state in use. The corpus written by the previous update is
+    removed unless a study settings file refers to it.
     """
     import csv
+    import shutil
     import subprocess
     from datetime import UTC, datetime, timedelta
 
     def run(*arguments: str) -> str:
         typer.echo("-> newsvar " + " ".join(arguments))
         done = subprocess.run(
-            [sys.executable, "-m", "newsvar", *arguments], capture_output=True, text=True
+            [sys.executable, "-m", "newsvar", *arguments],
+            capture_output=True,
+            text=True,
+            timeout=6 * 3600,
         )
         if done.returncode != 0:
             typer.echo(done.stdout[-2000:] + done.stderr[-2000:], err=True)
             raise typer.Exit(done.returncode)
         return done.stdout
 
-    now = datetime.now(UTC)
-    today = now.date()
-    run("market", "fetch")
-    run("market", "fetch-ohlc")
-    with Path("data/raw/market/fred_sp500.csv").open(encoding="utf-8-sig") as stream:
+    def relative(path: str) -> str:
+        resolved = Path(path).resolve()
+        here = Path.cwd().resolve()
+        return str(resolved.relative_to(here)) if resolved.is_relative_to(here) else path
+
+    started = datetime.now(UTC)
+    today = started.date()
+    snapshot = Path("data/raw/market") / started.strftime("%Y%m%dT%H%M%SZ")
+    run(
+        "market",
+        "fetch",
+        "--output-dir",
+        str(snapshot),
+        "--manifest",
+        str(snapshot / "manifest.json"),
+    )
+    fred = snapshot / "fred_sp500.csv"
+    run("market", "fetch-ohlc", "--output-dir", str(snapshot), "--fred-csv", str(fred))
+    with fred.open(encoding="utf-8-sig") as stream:
         first = next(
-            row["observation_date"] for row in csv.DictReader(stream) if row["SP500"] != ""
+            row["observation_date"]
+            for row in csv.DictReader(stream)
+            if row["SP500"] not in ("", ".")
         )
     calendar = json.loads(
         run(
@@ -1110,15 +1167,6 @@ def update(
     )
     run("gdelt", "catalog")
     run("gdelt", "extract", "--start", corpus_start, "--end", today.isoformat())
-    run(
-        "gdelt",
-        "extract",
-        "--force",
-        "--start",
-        (today - timedelta(days=refresh_days - 1)).isoformat(),
-        "--end",
-        today.isoformat(),
-    )
     corpus = json.loads(run("news", "corpus", "--start", corpus_start, "--end", today.isoformat()))
     run(
         "news",
@@ -1130,56 +1178,97 @@ def update(
         "--sampling-rate",
         str(sampling_rate),
     )
+    previous = json.loads(config.read_text(encoding="utf-8")) if config.is_file() else {}
     settings = {
-        "calendar_path": calendar["path"],
-        "fred_csv": "data/raw/market/fred_sp500.csv",
-        "vix_csv": "data/raw/market/cboe_vix.csv",
-        "ohlc_json": "data/raw/market/yahoo_gspc_daily.json",
-        "etf_json": "data/raw/market/yahoo_spy_daily.json",
-        "corpus": corpus["path"],
+        "calendar_path": relative(calendar["path"]),
+        "fred_csv": str(fred),
+        "vix_csv": str(snapshot / "cboe_vix.csv"),
+        "ohlc_json": str(snapshot / "yahoo_gspc_daily.json"),
+        "etf_json": str(snapshot / "yahoo_spy_daily.json"),
+        "corpus": relative(corpus["path"]),
         "scores_root": "data/derived/scores",
         "model_snapshot": str(model_snapshot),
         "sampling_rate": sampling_rate,
-        "updated_at_utc": now.isoformat(),
+        # Inputs are known only as of the start of this update, not its end.
+        "updated_at_utc": started.isoformat(),
     }
     _write_json(config, settings)
+    referenced = {settings["corpus"]}
+    for path in STUDY_CONFIGS:
+        if path.is_file():
+            referenced.add(relative(json.loads(path.read_text(encoding="utf-8")).get("corpus", "")))
+    stale = previous.get("corpus")
+    if stale and relative(stale) not in referenced and Path(stale).is_dir():
+        if Path(stale).resolve().parent == Path("data/derived/news").resolve():
+            shutil.rmtree(stale)
+            typer.echo(f"removed superseded corpus {stale}")
     typer.echo(str(config))
 
 
 @app.command()
 def forecast(
     session: Annotated[
-        str, typer.Option(help="Target session YYYY-MM-DD; default is the next one.")
+        str, typer.Option(help="Target session YYYY-MM-DD; default: the current and next one.")
     ] = "",
     config: Annotated[Path, OPS_CONFIG] = Path("data/operations.json"),
     log: Annotated[Path, typer.Option(help="Append-only forecast log.")] = Path(
         "data/forecasts/log.jsonl"
     ),
 ) -> None:
-    """Issue volatility, VaR and ES forecasts for one session from data known right now.
+    """Issue volatility, VaR and ES forecasts from data known at the last update.
 
-    Run ``newsvar update`` first. The pre-close forecast for a session becomes
-    available 30 minutes before the previous session's close; the at-open
-    forecast once that session has opened. Each call appends to the log; earlier
+    Run ``newsvar update`` first. Without ``--session`` the session that has not
+    closed yet and the one after it are both considered, so a run after 15:30
+    New York time issues the pre-close forecast for the next session and a run
+    after the open issues the at-open forecast for the current one. A set-up is
+    forecast only when its information time has passed, the data were refreshed
+    after that time and the news has been ingested up to it. Each record states
+    whether it was issued on time or late and is appended to the log; earlier
     entries are never rewritten.
     """
+    import os
     from datetime import UTC, datetime
     from datetime import date as date_type
 
     from newsvar.data.calendar import load_snapshot
+    from newsvar.data.gdelt import GdeltError
+    from newsvar.data.ohlc import OhlcError
     from newsvar.study.operate import forecast_session
+    from newsvar.study.volatility import VolatilityStudyError, build_panel, text_shares
 
     settings = json.loads(config.read_text(encoding="utf-8"))
     inputs = _vol_inputs(settings)
     now = datetime.now(UTC)
+    data_as_of = min(now, datetime.fromisoformat(settings["updated_at_utc"]))
     origins = load_snapshot(inputs.calendar_path).origins
     if session:
-        target = date_type.fromisoformat(session)
+        targets = [date_type.fromisoformat(session)]
     else:
-        target = next(origin.session for origin in origins if origin.close_utc > now)
-    record = forecast_session(inputs, target, as_of=now)
-    record["issued_at_utc"] = now.isoformat()
+        targets = [origin.session for origin in origins if origin.close_utc > now][:2]
+    if not targets:
+        typer.echo("The saved calendar has no session after now; run update.", err=True)
+        raise typer.Exit(4)
+    try:
+        rows = build_panel(inputs, as_of=data_as_of)
+        shares = text_shares(inputs, rows)
+        records = [
+            forecast_session(
+                inputs, target, as_of=now, data_as_of=data_as_of, text=shares, rows=rows
+            )
+            for target in targets
+        ]
+    except (VolatilityStudyError, OhlcError, GdeltError) as error:
+        typer.echo(f"Forecast failed: {error}", err=True)
+        raise typer.Exit(5) from error
+    identity = inputs.identity()
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a", encoding="utf-8") as stream:
-        stream.write(json.dumps(record, sort_keys=True) + "\n")
-    typer.echo(json.dumps({k: v for k, v in record.items() if k != "inputs"}, indent=2))
+        for record in records:
+            record["inputs"] = identity
+            record["issued_at_utc"] = now.isoformat()
+            stream.write(json.dumps(record, sort_keys=True, allow_nan=False) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    typer.echo(
+        json.dumps([{k: v for k, v in r.items() if k != "inputs"} for r in records], indent=2)
+    )

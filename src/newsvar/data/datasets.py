@@ -13,8 +13,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from newsvar.data.calendar import CalendarSnapshot
-from newsvar.data.market import MARKET_AVAILABILITY_BASIS, MarketSource
 from newsvar.data.labels import LabelBuild, build_labels
+from newsvar.data.market import MARKET_AVAILABILITY_BASIS, MarketSource
 from newsvar.hashing import IntegrityError, canonical_json, sha256
 
 DATASET_SCHEMA_VERSION = "market_dataset_v1"

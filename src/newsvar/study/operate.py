@@ -11,59 +11,84 @@ import numpy as np
 from newsvar.study import volatility as study
 
 
+def contract_status(
+    row: Mapping[str, Any], contract: str, *, as_of: datetime, data_as_of: datetime
+) -> tuple[str, str | None]:
+    """Whether one set-up can be forecast now, and if not, why."""
+    _, end = row[f"window_{contract}"]
+    names = [f"{name}_{contract}" for name in study.BASE_FEATURES[contract]]
+    missing = [name for name in names if row.get(name) is None]
+    if end > as_of:
+        return "unavailable", "information time not reached"
+    if end > data_as_of:
+        return "unavailable", "data were refreshed before the information time; run update"
+    if not row.get(f"ingested_{contract}", False):
+        return "unavailable", "news not yet ingested up to the information time; run update"
+    if not row[f"complete_{contract}"]:
+        return "unavailable", "news window incomplete"
+    if missing:
+        return "unavailable", f"missing inputs: {', '.join(missing)}"
+    return "ok", None
+
+
 def forecast_session(
     inputs: study.VolatilityInputs,
     session: date,
     *,
     as_of: datetime,
+    data_as_of: datetime | None = None,
     text: Mapping[str, np.ndarray] | None = None,
     rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Forecast one target session with the baseline and the text model for both contracts.
+    """Forecast one target session with the baseline and the text model for both set-ups.
 
-    Only information dated at or before ``as_of`` is treated as known: sessions
-    that have not closed have no outcome, and later rows are dropped. A contract
-    is reported as unavailable, with the reason, when an input is missing.
+    ``as_of`` is the issue time. ``data_as_of`` is when the input files were last
+    refreshed (default: the issue time); a session counts as closed, and a set-up
+    as ready, only relative to that time, so a partial price bar fetched during a
+    session is never read as its outcome. A set-up is reported as unavailable,
+    with the reason, when its information time has not passed, the data are older
+    than that time, the news has not been ingested up to it, or an input is
+    missing. ``timing`` says whether the forecast still precedes its target.
     """
-    panel = rows if rows is not None else study.build_panel(inputs, as_of=as_of)
+    known = min(as_of, data_as_of) if data_as_of is not None else as_of
+    panel = rows if rows is not None else study.build_panel(inputs, as_of=known)
     kept = [row for row in panel if row["session"] <= session]
     if not kept or kept[-1]["session"] != session:
         raise study.VolatilityStudyError(f"{session} is not a session of the saved calendar.")
-    shares = text if text is not None else study.text_shares(inputs, kept)
     target = kept[-1]
     output: dict[str, Any] = {
         "target_session": session.isoformat(),
         "as_of_utc": as_of.isoformat(),
-        "inputs": inputs.identity(),
+        "data_as_of_utc": known.isoformat(),
+        "inputs": inputs.identity() if rows is None else None,
         "contracts": {},
     }
+    statuses = {
+        contract: contract_status(target, contract, as_of=as_of, data_as_of=known)
+        for contract in study.CONTRACTS
+    }
+    shares = text
+    if shares is None and any(status == "ok" for status, _ in statuses.values()):
+        shares = study.text_shares(inputs, kept)
     for contract in study.CONTRACTS:
         start, end = target[f"window_{contract}"]
+        status, reason = statuses[contract]
         section: dict[str, Any] = {
             "news_window_utc": [start.isoformat(), end.isoformat()],
-            "news_window_complete": bool(target[f"complete_{contract}"]),
-            "information_time_passed": end <= as_of,
+            "status": status,
+            "timing": "on_time" if as_of <= target[f"deadline_{contract}"] else "late",
         }
-        names = [f"{name}_{contract}" for name in study.BASE_FEATURES[contract]]
-        missing = [name for name in names if target.get(name) is None]
-        if missing or not target[f"complete_{contract}"] or end > as_of:
-            section["status"] = "unavailable"
-            section["reason"] = (
-                "information time not reached"
-                if end > as_of
-                else "news window incomplete"
-                if not target[f"complete_{contract}"]
-                else f"missing inputs: {', '.join(missing)}"
-            )
+        if reason is not None:
+            section["reason"] = reason
             output["contracts"][contract] = section
             continue
+        assert shares is not None
         models = {
             "har": study.forecast_all(kept, contract, include_unlabelled=True),
             study.PRIMARY_MODEL: study.forecast_all(
                 kept, contract, text=shares[contract][: len(kept)], include_unlabelled=True
             ),
         }
-        section["status"] = "ok"
         section["models"] = {}
         for name, forecasts in models.items():
             record = forecasts.get(session)

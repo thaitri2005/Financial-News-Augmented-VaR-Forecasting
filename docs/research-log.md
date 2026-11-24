@@ -180,3 +180,38 @@ The referee recomputed the primary test from the forecast ledger (t = 2.749, ide
 Not archived: the reviewers' reports, the audit ratings, the shifted-penalty-grid run and the reviewer's noise simulation. The oracle diagnostic is now in `scripts/oracle_diagnostic.py`.
 
 The frozen registration's power note quotes a development pooled t of 2.05 from the run before SPY prices were adopted; the development record gives 2.08.
+
+### Code and operations
+
+The second final reviewer ran the test suite and linters (clean), compared every documented command with the code (all exist), searched for leftovers and credentials (none), and probed the operational path with real and synthetic inputs. It found no look-ahead in the forecasting code. Problems found and fixed:
+
+| Finding | Fix |
+|---|---|
+| **Two source files were never committed.** The ignore pattern `data/` also matched `src/newsvar/data/`, so `ohlc.py` and the package's `__init__.py` were untracked and a fresh clone could not run | Patterns anchored to the repository root; files committed; the source check now fails on ignored source files |
+| A live forecast could go out with the last hour of news missing, because a window passes the 95% completeness rule without its most recent batches | A set-up is issued only when verified batches reach the end of its window |
+| Whether a session had closed was decided by the clock, not by when the files were fetched, so a partial price bar could become an outcome | Sessions close relative to the data refresh time; a set-up whose information time is later than the refresh is refused |
+| `forecast` picked the wrong session before the close | It now considers the open session and the next one, and labels each record on time or late |
+| Re-extracting a day replaced it wholesale, so a network failure could destroy verified data; five days with permanently missing batches were re-downloaded on every update | Verified batches are reused; HTTP 404 is recorded as permanently missing; only new or failed batches are fetched |
+| `update` overwrote market files in place and was not transactional | Dated snapshot directories; settings replaced atomically at the end |
+| Every update left a 576 MB corpus behind | The superseded corpus is removed unless a study refers to it |
+| `vol evaluate` wrote its "opened" marker before a check that reads no outcome | That check now runs first; outputs are written atomically |
+| The architecture page claimed study 1 had the same gates | Corrected |
+| Dead code, a stale docstring, undeclared runtime dependencies | Removed or fixed |
+
+**Consequence for the registration.** `ohlc.py` (bar parsing, dividends, validation) was outside the registered source tree hash. Its file time shows it was last changed at 19:22 UTC, before registration (19:37) and evaluation (19:43), and its content at the time of the fix has SHA-256 `8761e10f…`. This cannot be proven from Git, so the source pin of the registration is incomplete in that one file. Nothing in that file reads an outcome.
+
+Not done: a unit test of `build_panel` on synthetic files, a file lock between `update` and `forecast`, and bringing the study 1 commands up to the study 2 gates. They are on the roadmap.
+
+## 2026-11-24 — First on-time prospective forecast
+
+After the operational fixes, `update` (4 minutes) and `forecast` (5.5 minutes) were run before the close.
+
+| Run | Target session | Set-up | Status |
+|---|---|---|---|
+| 20:29 UTC update, then forecast | 2026-11-24 | both | issued, marked late |
+| | 2026-11-25 | pre-close | refused: data refreshed one minute before the information time |
+| 20:39 UTC update, 20:43 UTC forecast | 2026-11-25 | pre-close | **issued on time**: text model 95% VaR −3.25%, ES −4.77%; baseline −3.70%, −5.23% |
+| | 2026-11-25 | at-open | refused: information time not reached |
+
+The 20:43 record is the first entry of `data/forecasts/log.jsonl` that is clean prospective evidence. The log is private and lives only where the commands are run.
+

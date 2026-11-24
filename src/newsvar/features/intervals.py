@@ -83,6 +83,18 @@ class ToneIndex:
         self._negative_count = np.concatenate([[0.0], np.cumsum(is_negative.astype(float))])
         self._ok = np.asarray(sorted(utc_seconds(item) for item in ok_batch_times(corpus))) + shift
 
+    def ingested_through(self, end: datetime) -> bool:
+        """True when verified batches reach the last 15-minute slot of a window ending at ``end``.
+
+        A window can pass the 95% completeness rule while its most recent batches
+        are still missing; a live forecast must not go out in that state.
+        """
+        if len(self._ok) == 0:
+            return False
+        step = int(BATCH_STEP.total_seconds())
+        last_slot = (utc_seconds(end) - self._buffer) // step * step + self._buffer
+        return bool(self._ok[-1] >= last_slot)
+
     def query(self, start: datetime, end: datetime) -> IntervalTone:
         """Aggregate headlines whose availability time lies in (start, end]."""
         low, high = utc_seconds(start), utc_seconds(end)

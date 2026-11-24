@@ -99,6 +99,8 @@ uv run newsvar vol evaluate --registration docs/records/volatility_preregistrati
 uv run newsvar vol report --registration docs/records/volatility_preregistration.json
 ```
 
+Optional keys in the settings file: `text_cache` (directory for cached term shares) and `power_note` (free text stored in the registration).
+
 `evaluate` writes `docs/records/volatility_evaluation_<id>.json` and refuses to run twice for one registration. A rerun over the same holdout replicates this study; it is not a new confirmatory test.
 
 ## 6. Study 1 (sentiment quantile regression)
@@ -137,7 +139,9 @@ uv run newsvar update
 uv run newsvar forecast
 ```
 
-`update` takes about 5 minutes once the history exists and writes `data/operations.json`. `forecast` takes about 5 minutes and appends to `data/forecasts/log.jsonl`.
+`update` takes about 5 minutes once the history exists and writes `data/operations.json`. `forecast` takes about 5 minutes and appends to `data/forecasts/log.jsonl`. See [architecture.md](architecture.md#operations) for when each set-up is issued.
+
+`update` writes each market snapshot to its own dated directory and deletes only the corpus of the previous update. To keep a study reproducible while operating daily, point `data/volatility_study.json` at one fixed snapshot directory and corpus; `update` never removes a corpus that a study settings file names.
 
 ## 8. The PDF report
 

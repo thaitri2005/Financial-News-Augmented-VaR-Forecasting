@@ -21,7 +21,6 @@ from newsvar.data.calendar import CalendarSnapshot
 from newsvar.evaluation.metrics import (
     QuantileObservation,
     block_bootstrap_mean,
-    breach,
     calibration_summary,
     christoffersen_test,
     kupiec_test,
@@ -364,19 +363,6 @@ def crossing_rate(
         "crossings": crossings,
         "rate": crossings / len(common) if common else None,
     }
-
-
-def breach_series(rows: Mapping[date, QuantileObservation]) -> dict[str, bool]:
-    return {
-        session.isoformat(): breach(row.return_simple, row.q_return)
-        for session, row in sorted(rows.items())
-    }
-
-
-def target_grid(calendar: CalendarSnapshot, start: date, end: date) -> list[date]:
-    return [
-        origin.next_session for origin in calendar.origins if start <= origin.next_session <= end
-    ]
 
 
 def feature_names(group: str, *, without_vix: bool = False) -> tuple[str, ...]:

@@ -81,15 +81,6 @@ class ScoreValue:
             raise ScoreError("Sentiment probabilities or token metadata are invalid.")
 
 
-@dataclass(frozen=True)
-class ScoredRecord:
-    record_id: str
-    content_sha256: str
-    fingerprint_id: str
-    score: ScoreValue
-    cache_hit: bool
-
-
 SCORE_SCHEMA = pa.schema(
     [
         pa.field("content_sha256", pa.string(), nullable=False),

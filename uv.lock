@@ -445,8 +445,12 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "exchange-calendars" },
+    { name = "numpy" },
+    { name = "pandas" },
     { name = "psutil" },
     { name = "pyarrow" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "typer" },
     { name = "tzdata" },
 ]
@@ -478,8 +482,12 @@ risk = [
 [package.metadata]
 requires-dist = [
     { name = "exchange-calendars", specifier = "==4.13.2" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", specifier = "==2.2.3" },
     { name = "psutil", specifier = ">=5.9,<8" },
     { name = "pyarrow", specifier = "==25.0.1" },
+    { name = "scikit-learn", specifier = "==1.6.1" },
+    { name = "scipy", specifier = ">=1.11" },
     { name = "typer", specifier = ">=0.12,<1" },
     { name = "tzdata", specifier = ">=2025.1" },
 ]
