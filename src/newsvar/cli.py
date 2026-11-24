@@ -22,6 +22,8 @@ news_app = typer.Typer(no_args_is_help=True, add_completion=False)
 app.add_typer(news_app, name="news")
 study_app = typer.Typer(no_args_is_help=True, add_completion=False)
 app.add_typer(study_app, name="study")
+vol_app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(vol_app, name="vol")
 
 
 @app.callback()
@@ -407,6 +409,9 @@ def news_score(
     batch_size: Annotated[int, typer.Option(min=1, max=256)] = 32,
     threads: Annotated[int, typer.Option(min=1, max=16)] = 4,
     max_seconds: Annotated[int, typer.Option(min=0)] = 0,
+    sampling_rate: Annotated[
+        float, typer.Option(min=0.0, max=1.0, help="Fixed rate; 0 derives it from the cap.")
+    ] = 0.0,
     project_root: Annotated[
         Path, typer.Option(exists=True, file_okay=False, resolve_path=True)
     ] = Path("."),
@@ -428,7 +433,7 @@ def news_score(
     manifest = load_corpus(corpus)
     unique = manifest["unique_retained_titles"]
     assert isinstance(unique, int)
-    rate = _sampling_rate(unique, title_cap)
+    rate = sampling_rate or _sampling_rate(unique, title_cap)
     threshold = sample_threshold(rate)
     table = pq.read_table(corpus / "titles.parquet", columns=["content_sha256", "title_clean"])
     titles = [
@@ -719,3 +724,209 @@ def news_fetch_model(
         cached = hf_hub_download("ProsusAI/finbert", name, revision=MODEL_REVISION)
         shutil.copyfile(cached, destination / name)
     typer.echo(f"{destination} fingerprint={model_fingerprint(destination).identity}")
+
+
+@market_app.command("fetch-ohlc")
+def market_fetch_ohlc(
+    output: Annotated[Path, typer.Option()] = Path("data/raw/market/yahoo_gspc_daily.json"),
+    fred_csv: Annotated[Path, typer.Option(exists=True, dir_okay=False)] = Path(
+        "data/raw/market/fred_sp500.csv"
+    ),
+) -> None:
+    """Download daily S&P 500 open-high-low-close bars and validate them against FRED closes."""
+    import time
+    import urllib.request
+
+    from newsvar.data.ohlc import SOURCE_URL, file_sha256, parse_chart, validate_against_closes
+    from newsvar.study.volatility import _read_series
+
+    request = urllib.request.Request(  # noqa: S310
+        SOURCE_URL.format(period2=int(time.time()) + 86_400),
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    stage = output.with_name(output.name + ".part")
+    with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+        stage.write_bytes(response.read(8 * 1024 * 1024))
+    bars = parse_chart(stage)
+    report = validate_against_closes(
+        bars, _read_series(fred_csv, "observation_date", "SP500", "%Y-%m-%d")
+    )
+    stage.replace(output)
+    typer.echo(
+        json.dumps(
+            {
+                "path": str(output),
+                "sha256": file_sha256(output),
+                "bars": len(bars),
+                "first": min(bars).isoformat(),
+                "last": max(bars).isoformat(),
+                **report,
+            },
+            indent=2,
+        )
+    )
+
+
+def _vol_setup(config: Path):  # type: ignore[no-untyped-def]
+    """Load inputs, the panel and cached text shares for the volatility study."""
+    import numpy as np
+
+    from newsvar.nlp.encoder import MODEL_REVISION, model_fingerprint
+    from newsvar.study import volatility as study
+
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    snapshot = Path(settings["model_snapshot"])
+    if snapshot.name != MODEL_REVISION:
+        raise typer.BadParameter("Model snapshot is not the pinned FinBERT revision.")
+    inputs = study.VolatilityInputs(
+        calendar_path=Path(settings["calendar_path"]),
+        fred_csv=Path(settings["fred_csv"]),
+        vix_csv=Path(settings["vix_csv"]),
+        ohlc_json=Path(settings["ohlc_json"]),
+        corpus=Path(settings["corpus"]),
+        scores_root=Path(settings["scores_root"]),
+        fingerprint=model_fingerprint(snapshot),
+        sampling_rate=float(settings["sampling_rate"]),
+    )
+    rows = study.build_panel(inputs)
+    identity = inputs.identity()
+    cache = Path(settings.get("text_cache", "data/derived/text_shares")) / (
+        f"{identity['corpus_id']}_{identity['calendar_id']}.npz"
+    )
+    if cache.is_file():
+        loaded = np.load(cache)
+        text = {name: loaded[name] for name in study.CONTRACTS}
+    else:
+        text = study.text_shares(inputs, rows)
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(cache, pre_close=text["pre_close"], at_open=text["at_open"])
+    if any(len(matrix) != len(rows) for matrix in text.values()):
+        raise typer.BadParameter("Cached text shares do not match the panel; delete the cache.")
+    return study, settings, inputs, rows, text
+
+
+def _git_state() -> tuple[str, str]:
+    import subprocess
+
+    from newsvar.data.ohlc import file_sha256
+
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--", "src", "pyproject.toml", "uv.lock"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if dirty:
+        typer.echo("Commit source changes first: the protocol is tied to a commit.", err=True)
+        raise typer.Exit(4)
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    return commit, file_sha256(Path("uv.lock"))
+
+
+VOL_CONFIG = typer.Option(exists=True, dir_okay=False, help="Volatility study settings JSON.")
+
+
+@vol_app.command("develop")
+def vol_develop(
+    output: Annotated[Path, typer.Option(help="Development record JSON to write.")],
+    config: Annotated[Path, VOL_CONFIG] = Path("data/volatility_study.json"),
+) -> None:
+    """Compare all models on the development range only; later rows are dropped first."""
+    from datetime import date as date_type
+
+    study, settings, _, rows, text = _vol_setup(config)
+    start = date_type.fromisoformat(settings["development_start"])
+    end = date_type.fromisoformat(settings["development_end"])
+    kept = [row for row in rows if row["session"] <= end]
+    forecasts = study.all_forecasts(
+        kept, study.NEWS_VARIANTS, {name: matrix[: len(kept)] for name, matrix in text.items()}
+    )
+    record = study.run_range(kept, forecasts, start=start, end=end)
+    record["pooled_primary_model"] = {
+        kind: study.pooled_test(kept, forecasts, study.PRIMARY_MODEL, kind, start=start, end=end)
+        for kind in ("qlike", "fz0", "pinball")
+    }
+    record["panel"] = study.panel_summary(kept, through=end)
+    record["scope"] = "Development range only. Rows after its end were removed before fitting."
+    _write_json(output, record)
+    typer.echo(str(output))
+
+
+@vol_app.command("preregister")
+def vol_preregister(
+    development_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Preregistration JSON to write.")],
+    config: Annotated[Path, VOL_CONFIG] = Path("data/volatility_study.json"),
+) -> None:
+    """Freeze the confirmatory protocol. Requires a clean committed source tree."""
+    from datetime import date as date_type
+
+    from newsvar.nlp.encoder import model_fingerprint
+    from newsvar.study import volatility as study
+
+    if output.exists():
+        typer.echo("A preregistration already exists at this path.", err=True)
+        raise typer.Exit(4)
+    commit, lock = _git_state()
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    inputs = study.VolatilityInputs(
+        Path(settings["calendar_path"]),
+        Path(settings["fred_csv"]),
+        Path(settings["vix_csv"]),
+        Path(settings["ohlc_json"]),
+        Path(settings["corpus"]),
+        Path(settings["scores_root"]),
+        model_fingerprint(Path(settings["model_snapshot"])),
+        float(settings["sampling_rate"]),
+    )
+    record = study.preregistration(
+        inputs,
+        development_record,
+        development_end=date_type.fromisoformat(settings["development_end"]),
+        holdout_start=date_type.fromisoformat(settings["holdout_start"]),
+        holdout_end=date_type.fromisoformat(settings["holdout_end"]),
+        fresh_start=date_type.fromisoformat(settings["fresh_start"]),
+        code_commit=commit,
+        lock_sha256=lock,
+        power_note=str(settings.get("power_note", "")),
+    )
+    _write_json(output, record)
+    typer.echo(json.dumps({"preregistration_id": record["preregistration_id"]}, indent=2))
+
+
+@vol_app.command("evaluate")
+def vol_evaluate(
+    registration: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Evaluation JSON to write.")],
+    config: Annotated[Path, VOL_CONFIG] = Path("data/volatility_study.json"),
+    ledger: Annotated[Path, typer.Option(help="Private per-date forecast ledger.")] = Path(
+        "data/derived/study/volatility_forecasts.parquet"
+    ),
+) -> None:
+    """Evaluate the holdout once, exactly as preregistered."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from newsvar.study import volatility as study
+
+    if output.exists():
+        typer.echo("An evaluation already exists; it is not overwritten.", err=True)
+        raise typer.Exit(4)
+    commit, lock = _git_state()
+    record_in = json.loads(registration.read_text(encoding="utf-8"))
+    _, _, inputs, _, _ = _vol_setup(config)
+    rows: list[dict[str, object]] = []
+    try:
+        record = study.evaluate(
+            inputs, record_in, code_commit=commit, lock_sha256=lock, ledger=rows
+        )
+    except study.VolatilityStudyError as error:
+        typer.echo(f"Evaluation refused: {error}", err=True)
+        raise typer.Exit(4) from error
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.Table.from_pylist(rows), ledger)
+    _write_json(output, record)
+    typer.echo(json.dumps(record["decisions"], indent=2))
