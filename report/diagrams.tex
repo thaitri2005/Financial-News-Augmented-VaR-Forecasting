@@ -1,0 +1,60 @@
+% Shared TikZ diagrams for the report.
+\newcommand{\pipelinediagram}{%
+\begin{tikzpicture}[x=1cm, y=1cm,
+  box/.style={draw=ink!55, rounded corners=2pt, fill=panel, minimum height=9mm, minimum width=28mm, font=\small, align=center, inner sep=3pt},
+  src/.style={box, fill=white, dashed},
+  arr/.style={-{Stealth[length=2mm]}, draw=ink!70, line width=0.5pt}]
+  \node[src] (fred) at (0,0) {FRED closes\\ Cboe VIX};
+  \node[src] (ohlc) at (0,-1.3) {Daily OHLC bars};
+  \node[src] (gdelt) at (0,-3.3) {GDELT archive\\ (15-min batches)};
+  \node[box] (market) at (3.6,-0.65) {Returns and\\ range variance};
+  \node[box] (har) at (7.2,-0.65) {Log-HAR\\ baseline};
+  \node[box] (fhs) at (10.8,-0.65) {VaR and ES by\\ filtered simulation};
+  \node[box] (eval) at (10.8,0.85) {Preregistered\\ evaluation};
+  \node[box] (titles) at (3.6,-3.3) {Verified title\\ store};
+  \node[box] (corpus) at (7.2,-3.3) {News corpus\\ (filter, dedup)};
+  \node[box] (text) at (10.8,-3.3) {Term shares\\ per news window};
+  \node[box] (ridge) at (10.8,-1.95) {Text ridge on\\ HAR residual};
+  \node[box] (finbert) at (7.2,-4.7) {FinBERT tone\\ (secondary)};
+  \draw[arr] (fred.east) -- ++(0.35,0) |- ([yshift=1.5mm]market.west);
+  \draw[arr] (ohlc.east) -- ++(0.35,0) |- ([yshift=-1.5mm]market.west);
+  \draw[arr] (market) -- (har);
+  \draw[arr] (har) -- (fhs);
+  \draw[arr] (fhs) -- (eval);
+  \draw[arr] (gdelt) -- (titles);
+  \draw[arr] (titles) -- (corpus);
+  \draw[arr] (corpus) -- (text);
+  \draw[arr] (corpus) -- (finbert);
+  \draw[arr] (text) -- (ridge);
+  \draw[arr] (ridge) -- (fhs);
+\end{tikzpicture}}
+
+\newcommand{\timingdiagram}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\small]
+  \def\len{13.2}
+  \node[anchor=west, font=\small\bfseries] at (0,2.75) {Pre-close contract};
+  \draw[line width=0.6pt, ink!70] (0,1.6) -- (\len,1.6);
+  \foreach \x/\lab in {1.4/{close $s{-}2$}, 6.4/{close $s{-}1$}, 11.4/{close $s$}}
+    {\draw[ink!70] (\x,1.5) -- (\x,1.7); \node[below, ink!80] at (\x,1.46) {\lab};}
+  \draw[ink!45, line width=2.2pt] (0,1.6) -- (1.4,1.6);
+  \node[above, ink!70] at (0.7,1.62) {prices};
+  \draw[accent, line width=2.2pt] (1.05,1.6) -- (6.05,1.6);
+  \node[above, accent] at (3.5,1.62) {news window};
+  \draw[ink, line width=0.9pt] (6.05,1.38) -- (6.05,2.05);
+  \node[above, ink] at (6.05,2.05) {forecast, 30 min before close};
+  \draw[second, line width=2.2pt] (6.4,1.6) -- (11.4,1.6);
+  \node[above, second] at (8.9,1.62) {target return and variance};
+  \node[anchor=west, font=\small\bfseries] at (0,0.45) {At-open contract};
+  \draw[line width=0.6pt, ink!70] (0,-0.6) -- (\len,-0.6);
+  \foreach \x/\lab in {4.4/{close $s{-}1$}, 11.4/{close $s$}}
+    {\draw[ink!70] (\x,-0.7) -- (\x,-0.5); \node[below, ink!80] at (\x,-0.74) {\lab};}
+  \node[below, ink!80] at (8.4,-0.74) {open $s$};
+  \draw[ink!45, line width=2.2pt] (0,-0.6) -- (4.4,-0.6);
+  \node[above, ink!70] at (2.2,-0.58) {prices and VIX};
+  \draw[accent, line width=2.2pt] (4.4,-0.6) -- (8.1,-0.6);
+  \node[above, accent] at (6.25,-0.58) {overnight news};
+  \draw[ink, line width=0.9pt] (8.4,-0.7) -- (8.4,-0.15);
+  \node[above, ink] at (8.4,-0.15) {forecast};
+  \draw[second, line width=2.2pt] (8.4,-0.6) -- (11.4,-0.6);
+  \node[above, second] at (10.1,-0.58) {target};
+\end{tikzpicture}}
