@@ -1,8 +1,8 @@
 # Private source data, local environments, caches, and generated run artifacts
-data/
-artifacts/
-.cache/
-.venv/
+/data/
+/artifacts/
+/.cache/
+/.venv/
 .env
 .env.*
 !.env.example
@@ -12,7 +12,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-dist/
+/dist/
+/build/
+*.egg-info/
+.coverage
 
 # LaTeX build files
 report/*.aux
@@ -21,3 +24,4 @@ report/*.out
 report/*.toc
 report/*.fls
 report/*.fdb_latexmk
+report/*.synctex.gz
