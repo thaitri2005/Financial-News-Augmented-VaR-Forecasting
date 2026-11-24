@@ -26,7 +26,7 @@ Run on training and development rows only ([`scripts/diagnose_news_signal.py`](.
   - *At-open:* forecast for session `s` made at its open; market inputs through the close of `s-1` plus the overnight gap; news from the previous close to 15 minutes before the open.
 - **Baseline.** Log-linear HAR on range-based variance plus VIX, refitted monthly on an expanding window; VaR and ES by filtered historical simulation.
 
-### First development run (out-of-sample inside 2021–2023)
+### First development run (out-of-sample inside 2021–2023, before the review fixes)
 
 | News term added to HAR | Pre-close QLIKE gain | At-open QLIKE gain |
 |---|---:|---:|
@@ -46,31 +46,85 @@ No look-ahead found; perturbation tests on synthetic data confirmed the informat
 |---|---|
 | Relative gain had the wrong sign for FZ0, whose mean is negative | Ratios are reported only for positive loss scales |
 | Conditional predictive ability test ignored the two-step horizon of the pre-close contract | The test now includes `horizon − 1` autocovariances |
-| Preregistration and evaluation enforced less than documented | All protocol constants are frozen in the record and compared at evaluation, with the commit, lockfile and date ordering; evaluation refuses to overwrite |
+| Preregistration and evaluation enforced less than documented | See review 2 below |
 | Slices of the holdout were refitted separately | Forecasts are produced once and sliced |
 | A month was skipped if its first day had too few training rows | Refits are retried until they succeed |
 | Calibration compared models on different days | All models are summarized on common sessions |
 | In-sample standardized returns made VaR too tight | The tail now uses past out-of-sample standardized returns once 250 are known |
 | Unscored headlines were dropped silently | Windows need 20 scored headlines and 98% coverage of the designated sample |
 
-After the fixes the HAR VaR is calibrated on development data: 34 breaches against 31.4 expected (pre-close), 40 against 31.5 (at-open).
+After the fixes, coverage tests no longer reject the HAR VaR on development data: 34 breaches against 31.4 expected (pre-close), 40 against 31.5 (at-open, Kupiec p = 0.14).
 
 ### Supervised text model
 
 Idea from Manela and Moreira's news-implied volatility: let the data choose which words matter.
 
-- Vocabulary: 5,000 most frequent one- and two-word terms in titles first seen by 2020-12-31 (at least 200 titles each). Fixed thereafter.
-- Feature: share of a window's retained headlines containing each term. Uses every retained headline, so no sampling and no FinBERT.
-- Model: ridge regression of the HAR residual on the term shares. Penalty chosen by 5-fold blocked cross-validation inside the training rows at every refit. The out-of-fold prediction sets a stacking weight, floored at zero, so a text model without out-of-fold signal contributes nothing.
+- Vocabulary: the 5,000 most frequent one- and two-word terms in titles first seen by 2020-12-31 (at least 200 titles each). Fixed thereafter.
+- Feature: share of a window's retained headlines containing each term, transformed by `log1p(1000 × share)`. Uses every retained headline, so no sampling and no FinBERT.
+- Model: ridge regression of the HAR residual on those features, with a stacking weight set from out-of-fold predictions (5 contiguous folds inside the training rows).
+- In practice the cross-validation always picks the largest penalty in the grid {10, 100, 1,000, 10,000}, so the penalty is effectively fixed at 10,000 and the stacking weight does the tuning.
 
-| Development, out-of-sample 2021–2023 | Pre-close | At-open |
+First run (index prices for both contracts): QLIKE gain +3.75% pre-close (t = 1.83) and +3.14% at-open (t = 1.81).
+
+Variants tried on development data, all logged here:
+
+| Variant | Pre-close QLIKE gain | At-open QLIKE gain | Kept? |
+|---|---:|---:|---|
+| Term-share levels, penalty grid 10–10,000 | +3.75% | +3.14% | yes |
+| Same, grid shifted to 1,000–1,000,000 (scratch run, no record file) | +2.33% | +3.28% | no; shows the pre-close gain is sensitive to the grid |
+| Abnormal usage against the previous 63 windows | +0.83% | +0.17% | no |
+| Abnormal usage against the previous 21 windows | +0.69% | +0.14% | no |
+
+### Independent review 2 (reviewer agent, read-only) — before preregistration
+
+No look-ahead in the text path: vocabulary, folds, stacking, tail history and refits were perturbation-tested on synthetic data. Under pure-noise text the pooled test rejected in 0.8% of runs, so it is conservative. Findings and actions:
+
+| Finding | Action |
+|---|---|
+| The index value at 09:30 is partly stale, so the at-open "gap" understated the overnight move and the catch-up sat inside the target | Measured on development dates: the index gap has 51% of the variance of SPY's gap, and the index open-to-close return is 0.35 correlated with SPY's gap. **The at-open contract now uses SPY bars** for the gap, the variance history and the target |
+| In the pre-close contract the baseline sees prices only through `s−2` while headlines run to the cutoff on `s−1` | Disclosed in the preregistration. Oracle diagnostic below |
+| The commit check would have refused evaluation once the registration was committed | Source is now identified by content: the Git tree of `src` and hashes of `pyproject.toml` and `uv.lock` |
+| Several constants were not pinned (penalty grid, folds, stacking cap, tokenizer, transform, HAR windows, bootstrap settings) and the score table could change unnoticed | All are in the registration and compared at evaluation; the score parts are hashed; eligible holdout row counts are recorded |
+| "Evaluate once" was only a file check | Output paths derive from the registration identifier; an "opened" marker is written before any outcome is computed; the registration must be committed |
+| Forking paths only partly disclosed | The registration lists every development choice and states that the design was prompted by study 1's null result |
+| The stacking weight let noise through | It is now zero unless the stacked out-of-fold prediction beats predicting zero. On noise some weight still passes, which can only hurt the challenger |
+| Penalty and stacking per refit were not recorded | Recorded in the forecast ledger and summarized in the development record |
+| Weak tail-leak test; no tests for the text path, pooled test or registration checks | Added |
+| Log overstated a few points | Corrected in this file |
+
+### Development results after review 2 (the frozen design)
+
+Out-of-sample inside 2021-01-04 to 2023-12-13; the text model against the HAR baseline.
+
+| Measure | Pre-close | At-open (SPY) | Pooled test |
+|---|---:|---:|---|
+| QLIKE gain | +3.75% (t = 1.83) | +4.27% (t = 1.85) | t = 2.08, one-sided p = 0.019 |
+| 5% pinball gain | +2.18% (t = 1.59) | +3.39% (t = 2.28) | t = 2.21, p = 0.013 |
+| 5% FZ0 improvement | +0.028 (t = 1.84) | +0.036 (t = 2.08) | t = 2.33, p = 0.010 |
+| 5% breaches, text model | 32 of 31.4 expected | 34 of 31.5 expected | |
+| 1% pinball gain | −1.24% | −0.13% | |
+| QLIKE improvement by year, 2021 / 2022 / 2023 | +0.006 / +0.008 / +0.019 | −0.002 / +0.012 / +0.019 | |
+
+Caveats on these numbers:
+
+- The pooled QLIKE bootstrap interval at block length 20 includes zero (−0.0036 to +0.0254); the FZ0 and pinball intervals exclude it.
+- The 1% tail is not improved.
+- The yearly pattern is three points; 2021 has few forecasts. It is compatible with a model that improves with more training data and equally with a 2023 regime effect.
+- The pre-close conditional test rejects equal conditional accuracy (p = 0.026): the gain depends on the state of the market.
+- Stacking was zero for 3% (pre-close) and 7% (at-open) of forecasts; its mean was 0.65 and 0.58.
+- FinBERT sentiment terms add 0.3–2.0% on QLIKE and nothing on VaR. The news-count surprise helps at the open (+1.6%, t = 2.7) but not before the close.
+- The HAR baseline itself beats historical simulation by 7.5% (pre-close) and 11.7% (at-open) on 5% pinball loss.
+
+### Oracle diagnostic for the pre-close contract (development only)
+
+Question: is the text gain just headlines describing that day's market move? The baseline was given, unrealistically, the variance and VIX of session `s−1`.
+
+| Baseline | Text QLIKE gain | 5% pinball gain |
 |---|---:|---:|
-| QLIKE gain over HAR | +3.75% (t = 1.83, one-sided p = 0.034) | +3.14% (t = 1.81, p = 0.035) |
-| 5% pinball gain | +2.18% | +3.19% |
-| 5% breaches (31.4 / 31.5 expected) | 32 | 37 |
-| QLIKE gain by year: 2021, 2022, 2023 | +0.006, +0.008, +0.019 | −0.005, +0.010, +0.017 |
+| As declared (prices through `s−2`) | +3.75% (t = 1.83) | +2.18% |
+| Plus same-day variance | +2.92% (t = 2.69) | +1.92% |
+| Plus same-day variance and VIX | +3.37% (t = 3.34) | +0.56% |
 
-- The gain grows as the training sample grows, as expected for a learned model.
-- **Penalty grid check.** Every refit chose the largest penalty in the grid {10, 100, 1,000, 10,000}. A grid shifted up by 100× gave +2.3% (pre-close) and +3.3% (at-open). The original grid is kept; the pre-close gain is sensitive to this choice and that is noted as a weakness.
+The volatility gain survives; the VaR gain shrinks. News text carries volatility information beyond same-day daily market data on development dates, but most of its VaR value in the pre-close contract overlaps with what same-day VIX would give.
 
-Everything tried on development data is listed in this log. The number of variants is small, but it is not one, so development figures are optimistic.
+Everything tried on development data is listed in this log. The design was chosen there, so development figures are optimistic.

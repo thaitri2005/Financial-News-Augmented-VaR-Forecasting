@@ -6,10 +6,11 @@ Two forecast contracts are evaluated on identical machinery.
                Market inputs through the close of s-2; news from the pre-close
                window ending at that cutoff. Target: close-to-close return and
                variance of session s.
-``at_open``    Forecast for session s made at its open. Market inputs through
-               the close of s-1 plus the overnight gap; news that arrived between
-               the previous close and 15 minutes before the open. Target:
-               open-to-close return and variance of session s.
+``at_open``    Forecast for session s made at its open, on the SPY exchange-traded
+               fund because the index's own opening value is partly stale. Market
+               inputs through the close of s-1 plus SPY's overnight gap; news that
+               arrived between the previous close and 15 minutes before the open.
+               Target: SPY open-to-close return and variance of session s.
 
 For each contract a baseline HAR model (lagged variances and VIX, plus the gap
 for ``at_open``) is compared with the same model plus one news-surprise term.
@@ -29,7 +30,13 @@ import numpy as np
 
 from newsvar.data.calendar import load_snapshot
 from newsvar.data.news import load_corpus
-from newsvar.data.ohlc import file_sha256, parse_chart, validate_against_closes
+from newsvar.data.ohlc import (
+    file_sha256,
+    parse_chart,
+    parse_dividends,
+    validate_against_closes,
+    validate_tracking,
+)
 from newsvar.evaluation.inference import (
     diebold_mariano,
     dynamic_quantile,
@@ -84,6 +91,7 @@ class VolatilityInputs:
     fred_csv: Path
     vix_csv: Path
     ohlc_json: Path
+    etf_json: Path
     corpus: Path
     scores_root: Path
     fingerprint: ScoreFingerprint
@@ -95,10 +103,19 @@ class VolatilityInputs:
             "fred_sha256": file_sha256(self.fred_csv),
             "vix_sha256": file_sha256(self.vix_csv),
             "ohlc_sha256": file_sha256(self.ohlc_json),
+            "etf_sha256": file_sha256(self.etf_json),
+            "scores_sha256": scores_digest(self.scores_root, self.fingerprint),
             "corpus_id": load_corpus(self.corpus)["corpus_id"],
             "score_fingerprint_id": self.fingerprint.identity,
             "sampling_rate": self.sampling_rate,
         }
+
+
+def scores_digest(root: Path, fingerprint: ScoreFingerprint) -> str:
+    """Hash of the committed score parts, so later scoring cannot silently change eligibility."""
+    directory = root / fingerprint.identity
+    parts = sorted(directory.glob("part-*.parquet")) if directory.is_dir() else []
+    return sha256("\n".join(f"{part.name}:{file_sha256(part)}" for part in parts).encode())
 
 
 def _read_series(path: Path, date_column: str, value_column: str, fmt: str) -> dict[date, float]:
@@ -127,6 +144,9 @@ def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
     vix = _read_series(inputs.vix_csv, "DATE", "CLOSE", "%m/%d/%Y")
     bars = parse_chart(inputs.ohlc_json)
     validate_against_closes(bars, closes)
+    etf = parse_chart(inputs.etf_json)
+    validate_tracking(etf, closes)
+    dividends = parse_dividends(inputs.etf_json)
     tone = ToneIndex(
         inputs.corpus,
         load_scores(inputs.scores_root, inputs.fingerprint),
@@ -137,28 +157,29 @@ def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
     intraday: list[float | None] = []
     daily: list[float | None] = []
     for position, session in enumerate(sessions):
-        bar = bars.get(session)
+        bar, fund = bars.get(session), etf.get(session)
         previous = closes.get(sessions[position - 1]) if position else None
-        if bar is None:
-            intraday.append(None)
-            daily.append(None)
-            continue
-        intraday.append(garman_klass(bar.open, bar.high, bar.low, bar.close))
+        # The index open is partly stale at 09:30. The stale part cancels in the
+        # close-to-close sum, so index bars serve the pre-close contract only; the
+        # at-open contract uses the fund's bars, which start from an opening auction.
         daily.append(
             None
-            if previous is None
+            if bar is None or previous is None
             else close_to_close_variance(previous, bar.open, bar.high, bar.low, bar.close)
+        )
+        intraday.append(
+            None if fund is None else garman_klass(fund.open, fund.high, fund.low, fund.close)
         )
     rows: list[dict[str, Any]] = []
     for position in range(24, len(sessions)):
         session, origin = sessions[position], origins[position]
         prior, prior2 = origins[position - 1], origins[position - 2]
-        bar = bars.get(session)
+        fund, fund_before = etf.get(session), etf.get(prior.session)
         row: dict[str, Any] = {"session": session, "month": (session.year, session.month)}
         close, last_close = closes.get(session), closes.get(prior.session)
         row["ret_pre_close"] = None if None in (close, last_close) else close / last_close - 1.0  # type: ignore[operator]
         row["var_pre_close"] = daily[position]
-        row["ret_at_open"] = None if bar is None else bar.close / bar.open - 1.0
+        row["ret_at_open"] = None if fund is None else fund.close / fund.open - 1.0
         row["var_at_open"] = intraday[position]
         for contract, lag, history in (("pre_close", 2, daily), ("at_open", 1, intraday)):
             window = history[position - lag - 21 : position - lag + 1]
@@ -180,9 +201,11 @@ def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
             row[f"last_return_{contract}"] = (
                 None if None in (known_close, earlier_close) else known_close / earlier_close - 1.0  # type: ignore[operator]
             )
-        if bar is not None and last_close is not None and row.get("mean22_at_open"):
+        if fund is not None and fund_before is not None and row.get("mean22_at_open"):
+            # Add back a cash dividend on its ex-date so the gap is a total return.
+            opened = fund.open + dividends.get(session, 0.0)
             row["gap_at_open"] = float(
-                np.log1p(overnight_variance(last_close, bar.open) / row["mean22_at_open"])
+                np.log1p(overnight_variance(fund_before.close, opened) / row["mean22_at_open"])
             )
         else:
             row["gap_at_open"] = None
@@ -323,10 +346,12 @@ def forecast_all(
                     residual_variance = fitted.residual_variance
                     if text is not None:
                         text_fit = fit_text_residual(text[training], np.log(targets) - logs)
-                        logs = logs + text_fit.out_of_fold
-                        residual_variance = float(
-                            np.var(np.log(targets) - logs, ddof=len(names) + 1)
-                        )
+                        # With zero stacking the model is exactly the HAR baseline.
+                        if text_fit.stacking > 0:
+                            logs = logs + text_fit.out_of_fold
+                            residual_variance = float(
+                                np.var(np.log(targets) - logs, ddof=len(names) + 1)
+                            )
                     volatility = np.sqrt(np.exp(logs + 0.5 * residual_variance))
                     returns = [rows[item][f"ret_{contract}"] for item in training]
                     in_sample = {
@@ -336,7 +361,7 @@ def forecast_all(
         if fitted is None or index not in matrix:
             continue
         log_forecast = fitted.log_forecast(matrix[index])
-        if text_fit is not None and text is not None:
+        if text_fit is not None and text is not None and text_fit.stacking > 0:
             log_forecast += float(text_fit.predict(text[index : index + 1])[0])
         variance = float(np.exp(log_forecast + 0.5 * residual_variance))
         volatility_now = float(np.sqrt(variance))
@@ -345,6 +370,9 @@ def forecast_all(
             "variance": variance,
             "tail_source_out_of_sample": float(len(known) >= MIN_TAIL_HISTORY),
         }
+        if text_fit is not None:
+            record["text_alpha"] = text_fit.alpha
+            record["text_stacking"] = text_fit.stacking
         for alpha in TAILS:
             tail = (
                 standardized_tail(known, np.ones(len(known)), alpha=alpha)
@@ -381,6 +409,21 @@ def historical_simulation(
     return forecasts
 
 
+def _mean_test(differences: Sequence[float] | np.ndarray) -> dict[str, float]:
+    """Diebold-Mariano test, with identical forecasts reported as a tie instead of noise."""
+    values = np.asarray(differences, dtype=np.float64)
+    if np.abs(values).max() < 1e-12:
+        return {
+            "mean_difference": 0.0,
+            "statistic": 0.0,
+            "p_value_two_sided": 1.0,
+            "p_value_challenger_better": 0.5,
+            "lags": 0.0,
+            "observations": float(len(values)),
+        }
+    return diebold_mariano(values)
+
+
 def _paired(
     baseline: Sequence[float], challenger: Sequence[float], grid: Sequence[float | None]
 ) -> dict[str, Any]:
@@ -393,7 +436,7 @@ def _paired(
         "mean_improvement": float(differences.mean()),
         # A ratio is meaningful only for a positive loss scale; FZ0 means are negative.
         "relative_gain": float(differences.mean() / base_mean) if base_mean > 0 else None,
-        "diebold_mariano": diebold_mariano(differences),
+        "diebold_mariano": _mean_test(differences),
         "bootstrap": {
             f"block_{length}": block_bootstrap_mean(grid, block_length=length)
             for length in BOOTSTRAP_BLOCKS
@@ -575,7 +618,9 @@ def run_range(
     return output
 
 
-def panel_summary(rows: Sequence[Mapping[str, Any]], *, through: date) -> dict[str, Any]:
+def panel_summary(
+    rows: Sequence[Mapping[str, Any]], *, through: date, start: date | None = None
+) -> dict[str, Any]:
     """Outcome-blind row counts, drop reasons and headline counts by contract."""
     summary: dict[str, Any] = {}
     for contract in CONTRACTS:
@@ -583,7 +628,7 @@ def panel_summary(rows: Sequence[Mapping[str, Any]], *, through: date) -> dict[s
         reasons: dict[str, int] = {}
         scored: list[int] = []
         for row in rows:
-            if row["session"] > through:
+            if row["session"] > through or (start is not None and row["session"] < start):
                 continue
             reason = ineligibility(row, contract)
             if reason is None:
@@ -659,7 +704,7 @@ def pooled_test(
         "status": "estimated",
         "pairs": len(valid),
         "mean_improvement": float(np.mean(valid)),
-        "diebold_mariano": diebold_mariano(valid),
+        "diebold_mariano": _mean_test(valid),
         "bootstrap": {
             f"block_{length}": block_bootstrap_mean(values, block_length=length)
             for length in BOOTSTRAP_BLOCKS
@@ -669,9 +714,21 @@ def pooled_test(
 
 def protocol_constants() -> dict[str, Any]:
     """Every constant that defines the confirmatory analysis; frozen into the preregistration."""
+    from newsvar.evaluation import inference
+    from newsvar.evaluation import metrics as metric_module
+    from newsvar.features import text_index
+    from newsvar.volatility import proxies, text_ridge
+
+    bootstrap_defaults = metric_module.block_bootstrap_mean.__kwdefaults__ or {}
+    share_transform = f"log1p({text_ridge.SHARE_SCALE:g} * share), standardized on training rows"
     return {
         "contracts": {name: list(BASE_FEATURES[name]) for name in CONTRACTS},
         "information_lag_sessions": dict(LAG),
+        "har_windows": [1, 5, 22],
+        "panel_offset_rows": 24,
+        "refit": "first row of each calendar month, retried until enough rows",
+        "variance_floor": proxies.VARIANCE_FLOOR,
+        "garman_klass_weight": proxies.GK_WEIGHT,
         "primary_model": PRIMARY_MODEL,
         "news_term": PRIMARY_NEWS,
         "secondary_news_terms": [name for name in NEWS_VARIANTS if name != PRIMARY_NEWS],
@@ -680,15 +737,33 @@ def protocol_constants() -> dict[str, Any]:
             "vocabulary_end": TEXT_VOCABULARY_END.isoformat(),
             "max_features": TEXT_MAX_FEATURES,
             "min_documents": TEXT_MIN_DOCUMENTS,
+            "token_pattern": text_index.TOKEN_PATTERN,
+            "ngram_range": list(text_index.NGRAM_RANGE),
+            "stop_words": text_index.STOP_WORDS,
+            "binary_term_presence": True,
+            "transform": share_transform,
+            "ridge_penalties": list(text_ridge.ALPHAS),
+            "folds": text_ridge.FOLDS,
+            "stacking": "out-of-fold slope floored at 0 and capped; zero unless it beats "
+            "the zero predictor out of fold",
+            "stacking_cap": text_ridge.STACKING_CAP,
         },
+        "availability_buffer_minutes": 15,
+        "open_buffer_minutes": OPEN_BUFFER.total_seconds() / 60.0,
         "tails": list(TAILS),
         "min_training_rows": MIN_TRAINING_ROWS,
         "min_tail_history": MIN_TAIL_HISTORY,
         "min_scored_headlines": MIN_SCORED_HEADLINES,
         "min_scoring_coverage": MIN_SCORING_COVERAGE,
         "min_pairs": MIN_PAIRS,
-        "bootstrap_blocks": list(BOOTSTRAP_BLOCKS),
-        "open_buffer_minutes": OPEN_BUFFER.total_seconds() / 60.0,
+        "bootstrap": {
+            "blocks": list(BOOTSTRAP_BLOCKS),
+            "replications": bootstrap_defaults["replications"],
+            "seed": bootstrap_defaults["seed"],
+        },
+        "newey_west_lags": f"floor(4 * (n / 100) ** (2 / 9)); n=700 gives "
+        f"{inference.default_lags(700)}",
+        "test_level": 0.05,
     }
 
 
@@ -700,30 +775,37 @@ def preregistration(
     holdout_start: date,
     holdout_end: date,
     fresh_start: date,
-    code_commit: str,
-    lock_sha256: str,
+    source: Mapping[str, str],
+    holdout_rows: Mapping[str, Any],
     power_note: str = "",
 ) -> dict[str, Any]:
     """Build the frozen confirmatory protocol. The caller must run this before any holdout
-    outcome is evaluated; ``evaluate`` later checks every recorded value against the code."""
+    outcome is evaluated; ``evaluate`` later checks every recorded value against the code.
+
+    ``source`` identifies the code by content (Git tree of ``src`` and file hashes), so
+    committing this record afterwards does not invalidate it.
+    """
     if not development_end < holdout_start <= fresh_start <= holdout_end:
         raise VolatilityStudyError("Development, holdout and fresh-slice dates are out of order.")
     development = json.loads(development_path.read_text(encoding="utf-8"))
     if date.fromisoformat(development["range"][1]) > development_end:
         raise VolatilityStudyError("The development record extends past the development end.")
     body = {
-        "schema_version": "volatility_preregistration_v1",
+        "schema_version": "volatility_preregistration_v2",
         "inputs": inputs.identity(),
         "development_record_sha256": file_sha256(development_path),
         "development_end": development_end.isoformat(),
         "holdout": [holdout_start.isoformat(), holdout_end.isoformat()],
         "fresh_slice_start": fresh_start.isoformat(),
-        "code_commit": code_commit,
-        "lock_sha256": lock_sha256,
+        "holdout_eligible_rows": dict(holdout_rows),
+        "source": dict(source),
         "protocol": protocol_constants(),
-        "model": "OLS on log variance, expanding window, refit on the first session of each "
-        "month, at least 250 training rows; VaR and ES by filtered historical simulation using "
-        "out-of-sample standardized returns once 250 are known",
+        "model": "Baseline: OLS on log range-based variance with daily, weekly and monthly "
+        "lags and log VIX (plus the overnight gap at the open); expanding window, refit "
+        "monthly, at least 250 training rows. Challenger: the same plus a ridge regression "
+        "of the baseline residual on headline term shares, penalty by blocked 5-fold "
+        "cross-validation, scaled by an out-of-fold stacking weight. VaR and ES by filtered "
+        "historical simulation using out-of-sample standardized returns once 250 are known.",
         "primary_hypothesis": f"H1: {PRIMARY_MODEL} has lower QLIKE than HAR on the holdout, "
         "tested once on the session-wise average of the two contracts' QLIKE improvements",
         "primary_test": "one-sided Diebold-Mariano test with Newey-West variance, 5% level. "
@@ -739,23 +821,39 @@ def preregistration(
         "contracts, and the pooled 5% FZ0 improvement is not negative. strong: confirmed and H2 "
         "p < 0.05. Otherwise not confirmed.",
         "power_note": power_note,
-        "disclosure": "The 2023-12-14 to 2025-12-31 part of the holdout was the test period of "
-        "the first study, whose aggregate results are known. No volatility forecast or range-"
-        "based variance was evaluated there before this record. The slice from "
-        "fresh_slice_start onward had never been evaluated in any form and is reported "
-        "separately.",
+        "disclosures": [
+            "The 2023-12-14 to 2025-12-31 part of the holdout was the test period of the first "
+            "study. That study's null result prompted this design, so the design is conditioned "
+            "on an outcome from that period. No volatility forecast, range-based variance or "
+            "text model was evaluated there before this record. The slice from "
+            "fresh_slice_start onward had never been evaluated in any form and is reported "
+            "separately.",
+            "The primary news model was chosen on development data after generic FinBERT "
+            "sentiment terms showed smaller gains. Development choices that were made or "
+            "checked there: text model versus sentiment terms, level versus abnormal term "
+            "shares, two penalty grids (the alternative grid lowered the pre-close gain), and "
+            "index versus fund prices for the at-open contract. The vocabulary size, minimum "
+            "term count, vocabulary date, transform and stacking cap were set once without "
+            "tuning. Development figures are therefore optimistic.",
+            "H1 compares the text model with a baseline built from daily data only. In the "
+            "pre-close contract the baseline knows prices through session s-2 while headlines "
+            "run to 30 minutes before the close of s-1, so part of any gain may come from "
+            "headlines that describe same-day market moves. A confirmed H1 shows that news "
+            "text improves on a daily-data volatility model; it does not show that news holds "
+            "information beyond intraday prices.",
+            "The at-open contract uses SPY prices because the S&P 500 index value at 09:30 is "
+            "partly stale.",
+            "The power figure applies to H1 alone under the development effect size; the "
+            "confirmed verdict adds two conditions and has lower power.",
+        ],
     }
     return {"preregistration_id": sha256(canonical_json(body)), **body}
 
 
 def verify_registration(
-    inputs: VolatilityInputs,
-    registration: Mapping[str, Any],
-    *,
-    code_commit: str | None = None,
-    lock_sha256: str | None = None,
+    inputs: VolatilityInputs, registration: Mapping[str, Any], *, source: Mapping[str, str]
 ) -> None:
-    """Refuse to evaluate unless the record, inputs, constants, code and lockfile all match."""
+    """Refuse to evaluate unless the record, inputs, constants and source content all match."""
     body = {key: value for key, value in registration.items() if key != "preregistration_id"}
     if sha256(canonical_json(body)) != registration["preregistration_id"]:
         raise VolatilityStudyError("Preregistration content does not match its identifier.")
@@ -763,10 +861,12 @@ def verify_registration(
         raise VolatilityStudyError("Study inputs differ from the preregistered inputs.")
     if registration["protocol"] != json.loads(canonical_json(protocol_constants())):
         raise VolatilityStudyError("Protocol constants in the code differ from the registration.")
-    if code_commit is not None and code_commit != registration["code_commit"]:
-        raise VolatilityStudyError("The checked-out source differs from the registered commit.")
-    if lock_sha256 is not None and lock_sha256 != registration["lock_sha256"]:
-        raise VolatilityStudyError("The lockfile differs from the registered lockfile.")
+    if dict(registration["source"]) != dict(source):
+        raise VolatilityStudyError("Source code or lockfile differs from the registered content.")
+    start, end = (date.fromisoformat(value) for value in registration["holdout"])
+    fresh = date.fromisoformat(registration["fresh_slice_start"])
+    if not date.fromisoformat(registration["development_end"]) < start <= fresh <= end:
+        raise VolatilityStudyError("Registered dates are out of order.")
 
 
 def holm(p_values: Mapping[str, float]) -> dict[str, float]:
@@ -784,13 +884,19 @@ def evaluate(
     inputs: VolatilityInputs,
     registration: Mapping[str, Any],
     *,
-    code_commit: str | None = None,
-    lock_sha256: str | None = None,
+    source: Mapping[str, str],
     ledger: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Run the frozen protocol on the holdout; slices reuse the same forecasts."""
-    verify_registration(inputs, registration, code_commit=code_commit, lock_sha256=lock_sha256)
+    verify_registration(inputs, registration, source=source)
     rows = build_panel(inputs)
+    counted = panel_summary(
+        rows,
+        start=date.fromisoformat(registration["holdout"][0]),
+        through=date.fromisoformat(registration["holdout"][1]),
+    )
+    if json.loads(canonical_json(counted)) != registration["holdout_eligible_rows"]:
+        raise VolatilityStudyError("Eligible holdout rows differ from the registered counts.")
     start, end = (date.fromisoformat(value) for value in registration["holdout"])
     fresh = date.fromisoformat(registration["fresh_slice_start"])
     forecasts = all_forecasts(rows, NEWS_VARIANTS, text_shares(inputs, rows))

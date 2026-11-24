@@ -17,6 +17,8 @@ import pyarrow.parquet as pq
 from newsvar.data.news import RETAINED, utc_seconds
 
 TOKEN_PATTERN = r"(?u)\b[a-z][a-z'&\-]{2,}\b"
+NGRAM_RANGE = (1, 2)
+STOP_WORDS = "english"
 
 
 class TextIndex:
@@ -38,9 +40,9 @@ class TextIndex:
         early = titles["first_batch_time_utc"] <= pd.Timestamp(vocabulary_end)
         vectorizer = CountVectorizer(
             lowercase=True,
-            ngram_range=(1, 2),
+            ngram_range=NGRAM_RANGE,
             binary=True,
-            stop_words="english",
+            stop_words=STOP_WORDS,
             token_pattern=TOKEN_PATTERN,
             min_df=min_document_count,
             max_features=max_features,
@@ -49,6 +51,8 @@ class TextIndex:
         vectorizer.fit(titles.loc[early, "title_clean"])
         self.terms: tuple[str, ...] = tuple(vectorizer.get_feature_names_out())
         self._matrix = vectorizer.transform(titles["title_clean"]).tocsr()
+        if not titles["content_sha256"].is_unique:
+            raise ValueError("Title table holds a duplicated content hash.")
         position = pd.Series(np.arange(len(titles)), index=titles["content_sha256"])
         events = pq.read_table(
             corpus / "events.parquet", columns=["batch_time_utc", "content_sha256", "status"]

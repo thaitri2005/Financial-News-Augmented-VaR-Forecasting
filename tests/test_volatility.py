@@ -143,23 +143,115 @@ def _synthetic_rows(seed: int = 8, size: int = 700) -> list[dict[str, object]]:
 
 
 @pytest.mark.parametrize("contract", study.CONTRACTS)
-def test_forecasts_ignore_outcomes_not_yet_known(contract: str) -> None:
+@pytest.mark.parametrize("with_text", [False, True])
+def test_forecasts_ignore_outcomes_not_yet_known(contract: str, with_text: bool) -> None:
     rows = _synthetic_rows()
     lag = study.LAG[contract]
-    target = next(i for i, row in enumerate(rows) if i > 500 and row["session"].day == 1)
-    clean = study.forecast_all(rows, contract, (study.NEWS_VARIANTS[0],))
-    session = rows[target]["session"]
+    text = np.random.default_rng(9).uniform(0, 0.02, size=(len(rows), 40)) if with_text else None
+    refit = next(i for i, row in enumerate(rows) if i > 560 and row["session"].day == 1)
+    news = () if with_text else (study.NEWS_VARIANTS[0],)
 
-    def perturbed(index: int) -> dict[str, float]:
+    def run(changed_index: int | None) -> dict[date, dict[str, float]]:
         changed = [dict(row) for row in rows]
-        changed[index][f"ret_{contract}"] = 0.5
-        changed[index][f"var_{contract}"] = 0.25
-        return study.forecast_all(changed, contract, (study.NEWS_VARIANTS[0],))[session]
+        if changed_index is not None:
+            # A large loss moves the lower tail, so a leak into the tail history would show.
+            changed[changed_index][f"ret_{contract}"] = -0.5
+            changed[changed_index][f"var_{contract}"] = 0.25
+        return study.forecast_all(changed, contract, news, text=text)
 
-    # The newest outcome allowed at a refit on this date is `lag` sessions back.
-    assert perturbed(target - lag + 1) == clean[session]
-    assert perturbed(target - lag) != clean[session]
-    assert perturbed(target) == clean[session]
+    clean = run(None)
+    for target in (refit, refit + 9):
+        session = rows[target]["session"]
+        # The newest outcome a forecast may use is `lag` sessions back.
+        assert run(target - lag + 1)[session] == clean[session]
+        assert run(target)[session] == clean[session]
+        assert run(target - lag)[session] != clean[session]
+    # With out-of-sample tails active, an outcome first matters exactly `lag` sessions later.
+    position = refit + 3
+    shocked = run(position)
+    sessions = [row["session"] for row in rows]
+    assert all(shocked[s] == clean[s] for s in sessions[position : position + lag] if s in clean)
+    assert shocked[sessions[position + lag]] != clean[sessions[position + lag]]
+
+
+def test_text_rows_after_the_target_cannot_change_a_forecast() -> None:
+    rows = _synthetic_rows()
+    rng = np.random.default_rng(10)
+    text = rng.uniform(0, 0.02, size=(len(rows), 40))
+    clean = study.forecast_all(rows, "at_open", text=text)
+    later = text.copy()
+    later[600:] = rng.uniform(0, 0.02, size=(len(rows) - 600, 40))
+    changed = study.forecast_all(rows, "at_open", text=later)
+    sessions = [row["session"] for row in rows]
+    assert all(clean[s] == changed[s] for s in sessions[:600] if s in clean)
+    assert any("text_stacking" in record for record in clean.values())
+
+
+def test_pooled_test_matches_a_hand_calculation() -> None:
+    rows = _synthetic_rows(size=620)
+    forecasts = study.all_forecasts(rows, (study.NEWS_VARIANTS[0],))
+    name = f"har+{study.NEWS_VARIANTS[0]}"
+    start, end = rows[300]["session"], rows[-1]["session"]
+    pooled = study.pooled_test(rows, forecasts, name, "qlike", start=start, end=end)
+    per_contract = [
+        study.daily_differences(
+            rows, contract, forecasts[contract]["har"], forecasts[contract][name], "qlike"
+        )
+        for contract in study.CONTRACTS
+    ]
+    common = [
+        s for s in sorted(set(per_contract[0]).intersection(per_contract[1])) if start <= s <= end
+    ]
+    expected = np.mean([0.5 * (per_contract[0][s] + per_contract[1][s]) for s in common])
+    assert pooled["pairs"] == len(common)
+    assert pooled["mean_improvement"] == pytest.approx(expected)
+    same = study.pooled_test(rows, forecasts, "har", "qlike", start=start, end=end)
+    assert same["diebold_mariano"]["statistic"] == 0.0
+
+
+def test_stacking_is_zero_when_text_cannot_beat_the_zero_predictor() -> None:
+    rng = np.random.default_rng(11)
+    shares = rng.uniform(0, 0.02, size=(500, 200))
+    weights = [
+        text_ridge.fit_text_residual(shares, rng.standard_normal(500)).stacking for _ in range(20)
+    ]
+    assert sum(weight == 0.0 for weight in weights) >= 5
+    assert max(weights) <= text_ridge.STACKING_CAP
+
+
+def test_registration_pins_constants_and_source(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    class FakeInputs:
+        def identity(self) -> dict[str, object]:
+            return {"corpus_id": "c", "scores_sha256": "s"}
+
+    development = tmp_path / "development.json"
+    development.write_text('{"range": ["2021-01-04", "2023-12-13"]}', encoding="utf-8")
+    source = {"src_tree": "t", "pyproject_sha256": "p", "lock_sha256": "l"}
+    arguments = dict(
+        development_end=date(2023, 12, 13),
+        holdout_start=date(2023, 12, 14),
+        holdout_end=date(2026, 11, 20),
+        fresh_start=date(2026, 1, 2),
+        source=source,
+        holdout_rows={"pre_close": {"eligible_rows": 700}},
+    )
+    record = study.preregistration(FakeInputs(), development, **arguments)  # type: ignore[arg-type]
+    study.verify_registration(FakeInputs(), record, source=source)  # type: ignore[arg-type]
+    with pytest.raises(study.VolatilityStudyError, match="Source"):
+        study.verify_registration(FakeInputs(), record, source={**source, "src_tree": "x"})  # type: ignore[arg-type]
+    tampered = {**record, "fresh_slice_start": "2026-02-02"}
+    with pytest.raises(study.VolatilityStudyError, match="identifier"):
+        study.verify_registration(FakeInputs(), tampered, source=source)  # type: ignore[arg-type]
+    monkeypatch.setattr(text_ridge, "ALPHAS", (1.0, 2.0))
+    with pytest.raises(study.VolatilityStudyError, match="constants"):
+        study.verify_registration(FakeInputs(), record, source=source)  # type: ignore[arg-type]
+    monkeypatch.undo()
+    with pytest.raises(study.VolatilityStudyError, match="order"):
+        study.preregistration(
+            FakeInputs(),
+            development,
+            **{**arguments, "fresh_start": date(2023, 1, 2)},  # type: ignore[arg-type]
+        )
 
 
 def test_range_report_pairs_models_and_flags_small_samples() -> None:

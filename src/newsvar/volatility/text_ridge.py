@@ -8,6 +8,8 @@ import numpy as np
 
 ALPHAS = (1e1, 1e2, 1e3, 1e4)
 FOLDS = 5
+STACKING_CAP = 1.5
+SHARE_SCALE = 1000.0
 
 
 @dataclass(frozen=True)
@@ -28,7 +30,7 @@ class TextResidualFit:
 
 
 def _transform(shares: np.ndarray) -> np.ndarray:
-    return np.log1p(1000.0 * np.asarray(shares, dtype=np.float64))
+    return np.log1p(SHARE_SCALE * np.asarray(shares, dtype=np.float64))
 
 
 def _standardize(shares: np.ndarray, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
@@ -46,8 +48,10 @@ def fit_text_residual(shares: np.ndarray, residual: np.ndarray) -> TextResidualF
     """Fit residual ~ text with the penalty and stacking weight chosen out of fold.
 
     Folds are contiguous blocks in time order. The stacking coefficient is the
-    slope of the residual on its out-of-fold prediction, floored at zero, so a
-    text model with no out-of-fold signal contributes nothing.
+    slope of the residual on its out-of-fold prediction, capped at 1.5. It is set
+    to zero unless the stacked out-of-fold prediction has a lower squared error
+    than predicting zero and the slope is positive; on pure noise this still
+    lets some weight through, which can only hurt the challenger.
     """
     target = np.asarray(residual, dtype=np.float64)
     target = target - target.mean()
@@ -74,7 +78,10 @@ def fit_text_residual(shares: np.ndarray, residual: np.ndarray) -> TextResidualF
             best_alpha, best_error, best_prediction = alpha, error, prediction
     variance = float(best_prediction @ best_prediction)
     stacking = max(0.0, float(target @ best_prediction) / variance) if variance > 0 else 0.0
-    stacking = min(stacking, 1.5)
+    stacking = min(stacking, STACKING_CAP)
+    stacked_error = float(np.mean((target - stacking * best_prediction) ** 2))
+    if stacked_error >= float(np.mean(target**2)):
+        stacking = 0.0
     return TextResidualFit(
         mean,
         scale,
