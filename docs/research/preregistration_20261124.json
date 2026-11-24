@@ -1,0 +1,166 @@
+{
+ "admission_record_sha256": "4e1342ee2d778135d3f947cba3db2e4fa625c07368900c2fbd641baac164eb7a",
+ "availability": "Class B: GDELT batch time + 15 minutes",
+ "code_commit": "c41c72052017dd6fd3d5a46d8a56d53212be5dc0",
+ "development_record_sha256": "cba02ad0f858959ca3b8fe42e20efa94b0adcaa08a6d7940ea460a301106718a",
+ "dominant_training_source": "prnewswire.com",
+ "exclusions": "an origin is scored only if its feed window is complete, scoring coverage is at least 98%, market inputs through t-1 exist, news warm-up is complete, and a label exists",
+ "feature_groups": {
+  "Q0": [
+   "return_last",
+   "abs_return_last",
+   "downside_square_last",
+   "vol_5",
+   "vol_21",
+   "vol_63",
+   "ewma_sigma",
+   "vix_last",
+   "vix_change"
+  ],
+  "Q1": [
+   "return_last",
+   "abs_return_last",
+   "downside_square_last",
+   "vol_5",
+   "vol_21",
+   "vol_63",
+   "ewma_sigma",
+   "vix_last",
+   "vix_change",
+   "news_log_rate",
+   "news_rate_z63",
+   "log_window_hours",
+   "has_news"
+  ],
+  "Q2": [
+   "return_last",
+   "abs_return_last",
+   "downside_square_last",
+   "vol_5",
+   "vol_21",
+   "vol_63",
+   "ewma_sigma",
+   "vix_last",
+   "vix_change",
+   "news_log_rate",
+   "news_rate_z63",
+   "log_window_hours",
+   "has_news",
+   "sentiment_mean",
+   "negative_probability_mean",
+   "sentiment_dispersion",
+   "negative_headline_ratio",
+   "sentiment_shock21",
+   "negative_log_intensity"
+  ]
+ },
+ "feature_table_id": "21e70d39c482b39e9150c38613eb96edb9e61115d760ed9b78f887fa6c5b63a2",
+ "fitting": {
+  "linear": "QuantileRegressor(highs), median impute, constant filter, StandardScaler",
+  "min_training_rows": 250,
+  "refit": "first origin of each calendar month, expanding window",
+  "seed": 1729,
+  "training_rows": "eligible rows whose label was available by the refit cutoff"
+ },
+ "information_cutoff": "30 minutes before the scheduled XNYS close; market inputs through t-1",
+ "inputs": {
+  "calendar_id": "6494526f9ca36cc168e92974ce6a4a3fee1cd8b3e1c5f4902d1458fe55d515a4",
+  "corpus_id": "d2287582812d09decd6a280f1b7cb83ccbccc0f89eacf35b97bc3710208ebbe5",
+  "corpus_start": "2019-09-23",
+  "market_dataset_id": "66a1ae68b9974033dd51d8a8dae633d309fff1159db76f0782aecef51418d98b",
+  "sampling_rate": 0.27,
+  "score_fingerprint": {
+   "backend": "transformers",
+   "max_length": 128,
+   "model_weight_sha256": "e15a7b5738df7f17553399b6d94c6e2ff69c89245d066e8e5d183f5803a554e3",
+   "precision": "fp32",
+   "preprocessing_version": "headline_text_v1",
+   "tokenizer_sha256": "bd910073c987363fd1f1183b7fbfaf023fefaa4aab3f44a27053014b2a8f2a69"
+  },
+  "score_fingerprint_id": "ca5cf73e7c08db9132a67d7ff486e2fcdc93562968bb7e9b9f8cc88541ff14e9"
+ },
+ "lock_sha256": "ee0ed49b855bec1eb93464585330a76f15c2b5daec8de2fcba319b11b9c3a11b",
+ "no_redesign": "No feature, setting, split or method is changed after the test is opened.",
+ "preregistration_id": "9a49621af268c5578beec9866ffd02622ef9a421e10a5004ab3dd14aa9c5cd53",
+ "primary_comparison": {
+  "baseline": "Q1",
+  "challenger": "Q2",
+  "metric": "mean pinball-loss difference on common eligible target sessions",
+  "practical_interest_relative_gain": 0.02,
+  "supported_if": "mean improvement > 0 and the block-20 interval excludes zero",
+  "tail": 0.05,
+  "uncertainty": "paired moving-block bootstrap, 2,000 replications, block 20, seed 1729, 95% percentile interval; blocks 10 and 5 as robustness"
+ },
+ "schema_version": "preregistration_v1",
+ "secondary_exploratory": [
+  "Q2 vs Q0, Q1 vs Q0, Q0 and Q2 vs the development-selected strongest baseline",
+  "Q0 with vs without VIX",
+  "1% tail for every comparison (sparse; exploratory)",
+  "tree challenger T0/T1/T2 with development-selected settings",
+  "rebuild-and-refit sensitivities: buffer 60/240 minutes, one-session delay, sentiment lag 5/20, recap exclusion, dominant-source exclusion, raw counts",
+  "ex-ante volatility regimes from training-period terciles of vol_21"
+ ],
+ "selected_linear_penalty": {
+  "0.01": {
+   "Q0": 0.001,
+   "Q1": 0.001,
+   "Q2": 0.001
+  },
+  "0.05": {
+   "Q0": 0.01,
+   "Q1": 0.01,
+   "Q2": 0.01
+  }
+ },
+ "selected_tree_setting": {
+  "0.01": {
+   "Q0": [
+    2,
+    200
+   ],
+   "Q1": [
+    2,
+    200
+   ],
+   "Q2": [
+    2,
+    200
+   ]
+  },
+  "0.05": {
+   "Q0": [
+    1,
+    200
+   ],
+   "Q1": [
+    1,
+    200
+   ],
+   "Q2": [
+    1,
+    200
+   ]
+  }
+ },
+ "split": {
+  "design": "reduced_study",
+  "development": [
+   "2022-12-13",
+   "2023-12-13"
+  ],
+  "development_rows": 250,
+  "gdelt_alternative_training_rows": 454,
+  "test": [
+   "2023-12-14",
+   "2025-12-31"
+  ],
+  "test_rows": 500,
+  "training_rows": 691,
+  "usable_rows": 1441
+ },
+ "strongest_baseline": {
+  "0.01": "gaussian_ewma_d0.94_i63",
+  "0.05": "garch_t"
+ },
+ "target": "S&P 500 price-index next-session close-to-close simple return"
+}
