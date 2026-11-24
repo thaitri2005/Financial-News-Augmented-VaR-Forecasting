@@ -1,0 +1,2741 @@
+{
+ "baseline_mean_pinball": {
+  "0.01": {
+   "filtered_historical": 0.0002809007326035736,
+   "garch_t": 0.00024206689173966912,
+   "gaussian_ewma_d0.94_i63": 0.00021852716666753228,
+   "historical_simulation_linear_w250": 0.00030746047559078183
+  },
+  "0.05": {
+   "filtered_historical": 0.0008896863997224856,
+   "garch_t": 0.0008850555472091925,
+   "gaussian_ewma_d0.94_i63": 0.0008902309356768336,
+   "historical_simulation_linear_w250": 0.001046591826792222
+  }
+ },
+ "comparisons": {
+  "0.01": {
+   "Q0_vs_strongest_baseline": {
+    "baseline_mean_pinball": 0.00021852716666753228,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -8.094501680849442e-05,
+       -5.1007345259520214e-05
+      ],
+      "mean": -6.492950710476373e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -8.38025965292919e-05,
+       -5.0946653981917316e-05
+      ],
+      "mean": -6.492950710476373e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -7.694775513161178e-05,
+       -5.23386758071082e-05
+      ],
+      "mean": -6.492950710476373e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.00028345667377229595,
+    "common_forecasts": 250,
+    "mean_improvement": -6.492950710476367e-05,
+    "relative_gain": -0.29712327348090123,
+    "yearly_mean_improvement": {
+     "2022": -7.949410101736888e-05,
+     "2023": -6.413060532896681e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q0_with_vix_vs_without": {
+    "baseline_mean_pinball": 0.0003245997528105405,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       3.0699438074047244e-05,
+       5.089900590966328e-05
+      ],
+      "mean": 4.114307903824449e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       2.673413095569845e-05,
+       5.205286550374273e-05
+      ],
+      "mean": 4.114307903824449e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       3.30574812592091e-05,
+       4.8504678345231835e-05
+      ],
+      "mean": 4.114307903824449e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.00028345667377229595,
+    "common_forecasts": 250,
+    "mean_improvement": 4.114307903824453e-05,
+    "relative_gain": 0.12675018598137552,
+    "yearly_mean_improvement": {
+     "2022": 1.4225087410125958e-05,
+     "2023": 4.261959334695986e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.00028345667377229595,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -3.627673439788861e-05,
+       1.0371788629207554e-05
+      ],
+      "mean": -1.0447937460438584e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.1855,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -4.533695463799655e-05,
+       1.5913645801339273e-05
+      ],
+      "mean": -1.0447937460438584e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.2645,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -2.8083599287445097e-05,
+       4.766156627129186e-06
+      ],
+      "mean": -1.0447937460438584e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.106,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.00029390461123273456,
+    "common_forecasts": 250,
+    "mean_improvement": -1.0447937460438613e-05,
+    "relative_gain": -0.03685902794735947,
+    "yearly_mean_improvement": {
+     "2022": 1.0540441601986164e-05,
+     "2023": -1.1599198759221377e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q0": {
+    "baseline_mean_pinball": 0.00028345667377229595,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -1.6322495262556546e-05,
+       1.1930009162799052e-05
+      ],
+      "mean": -5.399300240466372e-08,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.482,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -1.831311702170936e-05,
+       1.3955034552787944e-05
+      ],
+      "mean": -5.399300240466372e-08,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.445,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -1.5189824457162684e-05,
+       1.0634379633777322e-05
+      ],
+      "mean": -5.399300240466372e-08,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.52,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0002835106667747006,
+    "common_forecasts": 250,
+    "mean_improvement": -5.399300240466285e-08,
+    "relative_gain": -0.00019048061802925148,
+    "yearly_mean_improvement": {
+     "2022": 4.204326305087886e-05,
+     "2023": -2.363125190981397e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.00029390461123273456,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -1.0234691282422727e-05,
+       3.19072962053831e-05
+      ],
+      "mean": 1.0393944458033923e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.8315,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -1.4955828684713167e-05,
+       3.5965981163604436e-05
+      ],
+      "mean": 1.0393944458033923e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.763,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -7.30938101327798e-06,
+       2.6486192024800957e-05
+      ],
+      "mean": 1.0393944458033923e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.8815,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0002835106667747006,
+    "common_forecasts": 250,
+    "mean_improvement": 1.039394445803395e-05,
+    "relative_gain": 0.0353650268175047,
+    "yearly_mean_improvement": {
+     "2022": 3.1502821448892697e-05,
+     "2023": 9.236073568239977e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_strongest_baseline": {
+    "baseline_mean_pinball": 0.00021852716666753228,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -8.428134512898334e-05,
+       -4.95595993866179e-05
+      ],
+      "mean": -6.498350010716839e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -8.88613593137373e-05,
+       -5.0371765423864023e-05
+      ],
+      "mean": -6.498350010716839e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -8.202400658234242e-05,
+       -5.022990122572354e-05
+      ],
+      "mean": -6.498350010716839e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0002835106667747006,
+    "common_forecasts": 250,
+    "mean_improvement": -6.498350010716834e-05,
+    "relative_gain": -0.29737035032369397,
+    "yearly_mean_improvement": {
+     "2022": -3.745083796649002e-05,
+     "2023": -6.649373051994822e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   }
+  },
+  "0.05": {
+   "Q0_vs_strongest_baseline": {
+    "baseline_mean_pinball": 0.0008850555472091925,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -4.187610022097449e-05,
+       6.484617485874854e-05
+      ],
+      "mean": 8.892385307145531e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.6165,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -4.340425909714659e-05,
+       6.408967711556448e-05
+      ],
+      "mean": 8.892385307145531e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.6325,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -4.312592690330975e-05,
+       6.69477324278469e-05
+      ],
+      "mean": 8.892385307145531e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.5915,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.000876163161902047,
+    "common_forecasts": 250,
+    "mean_improvement": 8.892385307145492e-06,
+    "relative_gain": 0.010047262383909652,
+    "yearly_mean_improvement": {
+     "2022": 4.5260514991635725e-05,
+     "2023": 6.89750899533806e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q0_with_vix_vs_without": {
+    "baseline_mean_pinball": 0.0009648730462098518,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       5.741640397492633e-05,
+       0.0001214747115748915
+      ],
+      "mean": 8.870988430780477e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       5.426470139135856e-05,
+       0.00012196461528641257
+      ],
+      "mean": 8.870988430780477e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       5.489955839617074e-05,
+       0.00012001463685413549
+      ],
+      "mean": 8.870988430780477e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 1.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.000876163161902047,
+    "common_forecasts": 250,
+    "mean_improvement": 8.870988430780479e-05,
+    "relative_gain": 0.09193943665051986,
+    "yearly_mean_improvement": {
+     "2022": 2.0477886102957293e-05,
+     "2023": 9.245256775364027e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -6.992832231468201e-05,
+       -1.725963637031706e-05
+      ],
+      "mean": -4.1231114351495983e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -7.654812617767371e-05,
+       -1.6958883730516052e-05
+      ],
+      "mean": -4.1231114351495983e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0015,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -6.349345319360722e-05,
+       -2.042711554632863e-05
+      ],
+      "mean": -4.1231114351495983e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.000917394276253543,
+    "common_forecasts": 250,
+    "mean_improvement": -4.123111435149602e-05,
+    "relative_gain": -0.04705871707957696,
+    "yearly_mean_improvement": {
+     "2022": 6.348274588608673e-05,
+     "2023": -4.697491259237605e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -6.182971836961119e-05,
+       -1.4983689762752456e-05
+      ],
+      "mean": -3.651804966042463e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -6.814232983957977e-05,
+       -1.5845554820520227e-05
+      ],
+      "mean": -3.651804966042463e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.001,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -5.6944644894275645e-05,
+       -1.698650631970548e-05
+      ],
+      "mean": -3.651804966042463e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009126812115624716,
+    "common_forecasts": 250,
+    "mean_improvement": -3.651804966042457e-05,
+    "relative_gain": -0.0416795081650639,
+    "yearly_mean_improvement": {
+     "2022": 5.469419073808864e-05,
+     "2023": -4.1521252720258685e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.000917394276253543,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -1.820931539616742e-07,
+       1.0722354052869794e-05
+      ],
+      "mean": 4.713064691071358e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.9705,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -1.1734849768021616e-06,
+       1.249761571131629e-05
+      ],
+      "mean": 4.713064691071358e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.9475,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       7.695426929922452e-07,
+       9.377085825561383e-06
+      ],
+      "mean": 4.713064691071358e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.993,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009126812115624716,
+    "common_forecasts": 250,
+    "mean_improvement": 4.7130646910714495e-06,
+    "relative_gain": 0.005137447238409503,
+    "yearly_mean_improvement": {
+     "2022": -8.788555147998085e-06,
+     "2023": 5.453659872117361e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_strongest_baseline": {
+    "baseline_mean_pinball": 0.0008850555472091925,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -9.1892456468526e-05,
+       3.653470869042102e-05
+      ],
+      "mean": -2.7625664353279103e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.184,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -9.859480676313069e-05,
+       3.456369061133734e-05
+      ],
+      "mean": -2.7625664353279103e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.169,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -8.787342959414794e-05,
+       3.7736122034599676e-05
+      ],
+      "mean": -2.7625664353279103e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.189,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009126812115624716,
+    "common_forecasts": 250,
+    "mean_improvement": -2.7625664353279076e-05,
+    "relative_gain": -0.031213480826587543,
+    "yearly_mean_improvement": {
+     "2022": 9.995470572972435e-05,
+     "2023": -3.462374372492063e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   }
+  }
+ },
+ "development_eligible_forecasts": 250,
+ "dominant_training_source": "prnewswire.com",
+ "feature_table_id": "21e70d39c482b39e9150c38613eb96edb9e61115d760ed9b78f887fa6c5b63a2",
+ "inputs": {
+  "calendar_id": "6494526f9ca36cc168e92974ce6a4a3fee1cd8b3e1c5f4902d1458fe55d515a4",
+  "corpus_id": "d2287582812d09decd6a280f1b7cb83ccbccc0f89eacf35b97bc3710208ebbe5",
+  "corpus_start": "2019-09-23",
+  "market_dataset_id": "66a1ae68b9974033dd51d8a8dae633d309fff1159db76f0782aecef51418d98b",
+  "sampling_rate": 0.27,
+  "score_fingerprint": {
+   "backend": "transformers",
+   "max_length": 128,
+   "model_weight_sha256": "e15a7b5738df7f17553399b6d94c6e2ff69c89245d066e8e5d183f5803a554e3",
+   "precision": "fp32",
+   "preprocessing_version": "headline_text_v1",
+   "tokenizer_sha256": "bd910073c987363fd1f1183b7fbfaf023fefaa4aab3f44a27053014b2a8f2a69"
+  },
+  "score_fingerprint_id": "ca5cf73e7c08db9132a67d7ff486e2fcdc93562968bb7e9b9f8cc88541ff14e9"
+ },
+ "model_summaries": {
+  "0.01": {
+   "Q0": {
+    "breach_rate": 0.0,
+    "breaches": 0,
+    "christoffersen": {
+     "status": "not_estimable",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 248,
+      "n01": 0,
+      "n10": 0,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.0,
+     0.014647188635680363
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.02498150305344973,
+     "statistic": 5.025167926750726
+    },
+    "max_breach_run": 0,
+    "mean_pinball": 0.00028345667377229595,
+    "missing_forecasts": 0
+   },
+   "Q1": {
+    "breach_rate": 0.0,
+    "breaches": 0,
+    "christoffersen": {
+     "status": "not_estimable",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 248,
+      "n01": 0,
+      "n10": 0,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.0,
+     0.014647188635680363
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.02498150305344973,
+     "statistic": 5.025167926750726
+    },
+    "max_breach_run": 0,
+    "mean_pinball": 0.00029390461123273456,
+    "missing_forecasts": 0
+   },
+   "Q2": {
+    "breach_rate": 0.004,
+    "breaches": 1,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.5597629804448339,
+     "conditional_coverage_statistic": 1.160483668107645,
+     "independence_p_value": 0.9282996297705765,
+     "independence_statistic": 0.008097188112168752,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 246,
+      "n01": 1,
+      "n10": 1,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.00010126610417905015,
+     0.022083865000633245
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.2780714900139528,
+     "statistic": 1.1764911353210774
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.0002835106667747006,
+    "missing_forecasts": 0
+   },
+   "filtered_historical": {
+    "breach_rate": 0.0,
+    "breaches": 0,
+    "christoffersen": {
+     "status": "not_estimable",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 248,
+      "n01": 0,
+      "n10": 0,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.0,
+     0.014647188635680363
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.02498150305344973,
+     "statistic": 5.025167926750726
+    },
+    "max_breach_run": 0,
+    "mean_pinball": 0.0002809007326035736,
+    "missing_forecasts": 0
+   },
+   "garch_t": {
+    "breach_rate": 0.0,
+    "breaches": 0,
+    "christoffersen": {
+     "status": "not_estimable",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 248,
+      "n01": 0,
+      "n10": 0,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.0,
+     0.014647188635680363
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.02498150305344973,
+     "statistic": 5.025167926750726
+    },
+    "max_breach_run": 0,
+    "mean_pinball": 0.00024206689173966912,
+    "missing_forecasts": 0
+   },
+   "gaussian_ewma_d0.94_i63": {
+    "breach_rate": 0.004,
+    "breaches": 1,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.5597629804448339,
+     "conditional_coverage_statistic": 1.160483668107645,
+     "independence_p_value": 0.9282996297705765,
+     "independence_statistic": 0.008097188112168752,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 246,
+      "n01": 1,
+      "n10": 1,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.00010126610417905015,
+     0.022083865000633245
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.2780714900139528,
+     "statistic": 1.1764911353210774
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.00021852716666753228,
+    "missing_forecasts": 0
+   },
+   "historical_simulation_linear_w250": {
+    "breach_rate": 0.0,
+    "breaches": 0,
+    "christoffersen": {
+     "status": "not_estimable",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 248,
+      "n01": 0,
+      "n10": 0,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.0,
+     0.014647188635680363
+    ],
+    "expected_breaches": 2.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.02498150305344973,
+     "statistic": 5.025167926750726
+    },
+    "max_breach_run": 0,
+    "mean_pinball": 0.00030746047559078183,
+    "missing_forecasts": 0
+   }
+  },
+  "0.05": {
+   "Q0": {
+    "breach_rate": 0.02,
+    "breaches": 5,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.0461152736528254,
+     "conditional_coverage_statistic": 6.153222136345889,
+     "independence_p_value": 0.6500985995942632,
+     "independence_statistic": 0.20577583843999037,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 238,
+      "n01": 5,
+      "n10": 5,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.006525070002029502,
+     0.046053577153817256
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.013738177260985241,
+     "statistic": 6.07148034557369
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.000876163161902047,
+    "missing_forecasts": 0
+   },
+   "Q1": {
+    "breach_rate": 0.02,
+    "breaches": 5,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.0461152736528254,
+     "conditional_coverage_statistic": 6.153222136345889,
+     "independence_p_value": 0.6500985995942632,
+     "independence_statistic": 0.20577583843999037,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 238,
+      "n01": 5,
+      "n10": 5,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.006525070002029502,
+     0.046053577153817256
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.013738177260985241,
+     "statistic": 6.07148034557369
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.000917394276253543,
+    "missing_forecasts": 0
+   },
+   "Q2": {
+    "breach_rate": 0.02,
+    "breaches": 5,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.0461152736528254,
+     "conditional_coverage_statistic": 6.153222136345889,
+     "independence_p_value": 0.6500985995942632,
+     "independence_statistic": 0.20577583843999037,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 238,
+      "n01": 5,
+      "n10": 5,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.006525070002029502,
+     0.046053577153817256
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.013738177260985241,
+     "statistic": 6.07148034557369
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.0009126812115624716,
+    "missing_forecasts": 0
+   },
+   "filtered_historical": {
+    "breach_rate": 0.044,
+    "breaches": 11,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.5504219207368116,
+     "conditional_coverage_statistic": 1.1941403324719886,
+     "independence_p_value": 0.31217200222893493,
+     "independence_statistic": 1.0214639728000066,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 226,
+      "n01": 11,
+      "n10": 11,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.022166258024693037,
+     0.07736291656955739
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.6570559130430829,
+     "statistic": 0.1971196291399906
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.0008896863997224856,
+    "missing_forecasts": 0
+   },
+   "garch_t": {
+    "breach_rate": 0.052,
+    "breaches": 13,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.47971248887824824,
+     "conditional_coverage_statistic": 1.4691366720898742,
+     "independence_p_value": 0.23029599084773206,
+     "independence_statistic": 1.4390323536138112,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 222,
+      "n01": 13,
+      "n10": 13,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.02797489245844054,
+     0.08728018493035448
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.8853472694425738,
+     "statistic": 0.02079191303162986
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.0008850555472091925,
+    "missing_forecasts": 0
+   },
+   "gaussian_ewma_d0.94_i63": {
+    "breach_rate": 0.052,
+    "breaches": 13,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.47971248887824824,
+     "conditional_coverage_statistic": 1.4691366720898742,
+     "independence_p_value": 0.23029599084773206,
+     "independence_statistic": 1.4390323536138112,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 222,
+      "n01": 13,
+      "n10": 13,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.02797489245844054,
+     0.08728018493035448
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 0.8853472694425738,
+     "statistic": 0.02079191303162986
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.0008902309356768336,
+    "missing_forecasts": 0
+   },
+   "historical_simulation_linear_w250": {
+    "breach_rate": 0.004,
+    "breaches": 1,
+    "christoffersen": {
+     "conditional_coverage_p_value": 0.00010539296397613908,
+     "conditional_coverage_statistic": 18.315629359059713,
+     "independence_p_value": 0.9282996297705765,
+     "independence_statistic": 0.008097188112168752,
+     "status": "estimated",
+     "transitions": {
+      "eligible_pairs": 248,
+      "n00": 246,
+      "n01": 1,
+      "n10": 1,
+      "n11": 0
+     }
+    },
+    "exact_interval": [
+     0.00010126610417905015,
+     0.022083865000633245
+    ],
+    "expected_breaches": 12.5,
+    "forecasts": 250,
+    "kupiec": {
+     "p_value": 1.702068930469055e-05,
+     "statistic": 18.496608660409343
+    },
+    "max_breach_run": 1,
+    "mean_pinball": 0.001046591826792222,
+    "missing_forecasts": 0
+   }
+  }
+ },
+ "regimes_Q2_vs_Q1_primary_tail": {
+  "regimes": {
+   "high": {
+    "mean_improvement": -3.716025189882911e-06,
+    "pairs": 1
+   },
+   "low": {
+    "mean_improvement": 7.174863136063039e-06,
+    "pairs": 140
+   },
+   "middle": {
+    "mean_improvement": 1.6284528340265769e-06,
+    "pairs": 109
+   }
+  },
+  "thresholds_vol_21": [
+   0.008798293781518864,
+   0.0141350892120536
+  ]
+ },
+ "schema_version": "development_record_v1",
+ "scope": "Development range only. No test-range outcome or forecast was computed.",
+ "search": [
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.000880609291169484,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.000876163161902047,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.001200161509532567,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.0009834849738755357,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.000917394276253543,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.001200161509532567,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.001005690874064099,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.0009126812115624716,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.001200161509532567,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.00028345667377229595,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.0003410451416265812,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q0",
+   "mean_pinball": 0.0004436972845716848,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.00029390461123273456,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.00034187950685912467,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q1",
+   "mean_pinball": 0.0004436972845716848,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.0002835106667747006,
+   "penalty": 0.001,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.00034240794987340365,
+   "penalty": 0.01,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "family": "linear",
+   "group": "Q2",
+   "mean_pinball": 0.0004436972845716848,
+   "penalty": 0.1,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0008816232274358401,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0008768646930605116,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0008755498147866421,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0009006167826504345,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.000992877330156374,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.0009659682892487895,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.0009925497505856983,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.00101806933880842,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0009725253277702877,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0009564293184757184,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0009882512286562928,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0010101028706270688,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.05,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0002935742536893098,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.00025641965296290437,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0002484575404213361,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q0",
+   "mean_pinball": 0.0002329723493126839,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.00034113183762515386,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.00032265840321496427,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.0003140486122692314,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q1",
+   "mean_pinball": 0.00028503882972015114,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.00030018876580003396,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 1,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0002713635119385777,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.00028233296422784074,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 100,
+   "valid_forecasts": 250
+  },
+  {
+   "depth": 2,
+   "family": "tree",
+   "group": "Q2",
+   "mean_pinball": 0.0002558555449712179,
+   "status_counts": {
+    "ineligible_inputs": 2,
+    "ready": 250
+   },
+   "tail": 0.01,
+   "trees": 200,
+   "valid_forecasts": 250
+  }
+ ],
+ "selected_linear_penalty": {
+  "0.01": {
+   "Q0": 0.001,
+   "Q1": 0.001,
+   "Q2": 0.001
+  },
+  "0.05": {
+   "Q0": 0.01,
+   "Q1": 0.01,
+   "Q2": 0.01
+  }
+ },
+ "selected_tree_setting": {
+  "0.01": {
+   "Q0": [
+    2,
+    200
+   ],
+   "Q1": [
+    2,
+    200
+   ],
+   "Q2": [
+    2,
+    200
+   ]
+  },
+  "0.05": {
+   "Q0": [
+    1,
+    200
+   ],
+   "Q1": [
+    1,
+    200
+   ],
+   "Q2": [
+    1,
+    200
+   ]
+  }
+ },
+ "sensitivities_primary_tail": {
+  "availability_buffer_240min": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -6.543084084564687e-05,
+       -1.3377999557443616e-05
+      ],
+      "mean": -3.69881366302465e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.001,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -7.205630019454525e-05,
+       -1.4223520035649504e-05
+      ],
+      "mean": -3.69881366302465e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.002,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -5.939603098176129e-05,
+       -1.6341753373104584e-05
+      ],
+      "mean": -3.69881366302465e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009131512985322934,
+    "common_forecasts": 250,
+    "mean_improvement": -3.698813663024635e-05,
+    "relative_gain": -0.04221603719328881,
+    "yearly_mean_improvement": {
+     "2022": 7.664817704918373e-05,
+     "2023": -4.322135214852748e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009131512985322934,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -2.9822636218782257e-06,
+       5.840451560714136e-06
+      ],
+      "mean": 5.003685124546814e-07,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.7225,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -2.6761640240864522e-06,
+       6.5319692421033155e-06
+      ],
+      "mean": 5.003685124546814e-07,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.7805,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -3.4794075808917203e-06,
+       5.263305780903311e-06
+      ],
+      "mean": 5.003685124546814e-07,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.6595,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009126509300198387,
+    "common_forecasts": 250,
+    "mean_improvement": 5.003685124546674e-07,
+    "relative_gain": 0.0005479579487637032,
+    "yearly_mean_improvement": {
+     "2022": -3.208358609569527e-05,
+     "2023": 2.2876740394840036e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 240,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 250
+  },
+  "availability_buffer_60min": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -6.859464999884944e-05,
+       -1.6125846071385643e-05
+      ],
+      "mean": -3.9810172618901696e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -7.532296426700848e-05,
+       -1.5931472128425785e-05
+      ],
+      "mean": -3.9810172618901696e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0015,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -6.212249247592835e-05,
+       -1.9067576294790652e-05
+      ],
+      "mean": -3.9810172618901696e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009159733345209486,
+    "common_forecasts": 250,
+    "mean_improvement": -3.9810172618901635e-05,
+    "relative_gain": -0.0454369395450026,
+    "yearly_mean_improvement": {
+     "2022": 6.888515971849534e-05,
+     "2023": -4.577236384415977e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009159733345209486,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -2.2032775164269462e-07,
+       4.410558254341022e-06
+      ],
+      "mean": 1.4420059783643718e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.9585,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -3.717430077060786e-07,
+       5.469675956032331e-06
+      ],
+      "mean": 1.4420059783643718e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.9405,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -4.641656050480931e-07,
+       3.7171250762496285e-06
+      ],
+      "mean": 1.4420059783643718e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.94,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009145313285425842,
+    "common_forecasts": 250,
+    "mean_improvement": 1.4420059783644412e-06,
+    "relative_gain": 0.0015742881632232297,
+    "yearly_mean_improvement": {
+     "2022": -1.4066545315339324e-05,
+     "2023": 2.2926860071329294e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 60,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 250
+  },
+  "counts_include_duplicates": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -3.8266160755557455e-05,
+       -2.6980804349752263e-06
+      ],
+      "mean": -1.9303118063984758e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0095,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -4.246960134280591e-05,
+       -2.492673092662636e-06
+      ],
+      "mean": -1.9303118063984758e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0115,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -3.3779933063929034e-05,
+       -5.135420204640534e-06
+      ],
+      "mean": -1.9303118063984758e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0008954662799660318,
+    "common_forecasts": 250,
+    "mean_improvement": -1.9303118063984832e-05,
+    "relative_gain": -0.022031419378646368,
+    "yearly_mean_improvement": {
+     "2022": 2.794335551193511e-05,
+     "2023": -2.189469678333901e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0008954662799660318,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -2.318780370648208e-05,
+       -7.6154078154373e-06
+      ],
+      "mean": -1.5498148851201096e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -2.4920841193730776e-05,
+       -7.058007957372745e-06
+      ],
+      "mean": -1.5498148851201096e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -2.2252595635170018e-05,
+       -7.944888673119917e-06
+      ],
+      "mean": -1.5498148851201096e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009109644288172327,
+    "common_forecasts": 250,
+    "mean_improvement": -1.5498148851200862e-05,
+    "relative_gain": -0.01730735059257481,
+    "yearly_mean_improvement": {
+     "2022": -2.347775550737596e-05,
+     "2023": -1.5060448908035386e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": true,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 250
+  },
+  "dominant_source_excluded": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -7.245622682011994e-05,
+       -1.761211436015166e-05
+      ],
+      "mean": -4.295149888164625e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -7.954534873726689e-05,
+       -1.7794358244010956e-05
+      ],
+      "mean": -4.295149888164625e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0015,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -6.624444170461934e-05,
+       -2.091173308668135e-05
+      ],
+      "mean": -4.295149888164625e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009191146607836933,
+    "common_forecasts": 250,
+    "mean_improvement": -4.295149888164634e-05,
+    "relative_gain": -0.049022260635112405,
+    "yearly_mean_improvement": {
+     "2022": 5.793464664864731e-05,
+     "2023": -4.848533808794927e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009191146607836933,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -1.7824605329241964e-06,
+       6.9959201660173564e-06
+      ],
+      "mean": 2.185960599009481e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.8545,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -2.5546800128282248e-06,
+       8.49884892363578e-06
+      ],
+      "mean": 2.185960599009481e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.816,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -1.2245075284392472e-06,
+       6.123874974279298e-06
+      ],
+      "mean": 2.185960599009481e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.8905,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009169287001846838,
+    "common_forecasts": 250,
+    "mean_improvement": 2.18596059900955e-06,
+    "relative_gain": 0.0023783328590860106,
+    "yearly_mean_improvement": {
+     "2022": -7.290984731397657e-06,
+     "2023": 2.7057930432934176e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": "prnewswire.com",
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 250
+  },
+  "news_delayed_one_session": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.0008762646296567199,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -8.895111927115273e-06,
+       4.175193690058348e-06
+      ],
+      "mean": -1.5744867200783129e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.2175,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -1.0301291750590002e-05,
+       2.8937122097161097e-06
+      ],
+      "mean": -1.5744867200783129e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.1715,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -8.005809484018772e-06,
+       4.270887438362647e-06
+      ],
+      "mean": -1.5744867200783129e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.244,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.000877839116376798,
+    "common_forecasts": 250,
+    "mean_improvement": -1.5744867200781498e-06,
+    "relative_gain": -0.001796816471634786,
+    "yearly_mean_improvement": {
+     "2022": 3.6238045454909016e-05,
+     "2023": -3.648591860478462e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.000877839116376798,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -7.98172607945508e-06,
+       -2.461738666667762e-06
+      ],
+      "mean": -5.039424881069465e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -8.31000806991574e-06,
+       -2.137594497430414e-06
+      ],
+      "mean": -5.039424881069465e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -7.6263243646130875e-06,
+       -2.8165012782901044e-06
+      ],
+      "mean": -5.039424881069465e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0008828785412578675,
+    "common_forecasts": 250,
+    "mean_improvement": -5.03942488106954e-06,
+    "relative_gain": -0.005740715795246529,
+    "yearly_mean_improvement": {
+     "2022": -9.552916163764405e-06,
+     "2023": -4.791849409866788e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 1
+   },
+   "eligible_forecasts": 250
+  },
+  "recap_headlines_excluded": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.000876163161902047,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -7.142644144263125e-05,
+       -1.664023459597279e-05
+      ],
+      "mean": -4.0808484411815334e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -7.892572294700397e-05,
+       -1.5597482686045376e-05
+      ],
+      "mean": -4.0808484411815334e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.002,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -6.374564374309253e-05,
+       -1.9749267697579893e-05
+      ],
+      "mean": -4.0808484411815334e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009169716463138623,
+    "common_forecasts": 250,
+    "mean_improvement": -4.080848441181527e-05,
+    "relative_gain": -0.046576352654709725,
+    "yearly_mean_improvement": {
+     "2022": 7.909819495909434e-05,
+     "2023": -4.7385644039755515e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009169716463138623,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 250,
+      "interval_95": [
+       -9.790342039017304e-06,
+       1.5440296869864027e-05
+      ],
+      "mean": 1.9779798581605046e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.6685,
+      "valid_pairs": 250
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 250,
+      "interval_95": [
+       -9.949942981727621e-06,
+       1.4160033853045433e-05
+      ],
+      "mean": 1.9779798581605046e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.701,
+      "valid_pairs": 250
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 250,
+      "interval_95": [
+       -9.573605959088838e-06,
+       1.5511888354270002e-05
+      ],
+      "mean": 1.9779798581605046e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.636,
+      "valid_pairs": 250
+     }
+    },
+    "challenger_mean_pinball": 0.0009149936664557018,
+    "common_forecasts": 250,
+    "mean_improvement": 1.9779798581604424e-06,
+    "relative_gain": 0.002157078537937057,
+    "yearly_mean_improvement": {
+     "2022": -2.4937442414837596e-05,
+     "2023": 3.454353231784875e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 237
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": false,
+    "exclude_recaps": true,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 0,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 250
+  },
+  "sentiment_lagged_20_origins": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.0008867299393813155,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 247,
+      "interval_95": [
+       -5.905843276627857e-05,
+       -6.841282952695669e-06
+      ],
+      "mean": -3.1831957456898935e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.007,
+      "valid_pairs": 247
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 247,
+      "interval_95": [
+       -6.937372873035427e-05,
+       -3.9240514704189245e-06
+      ],
+      "mean": -3.1831957456898935e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.013,
+      "valid_pairs": 247
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 247,
+      "interval_95": [
+       -5.20314377556051e-05,
+       -1.1426750625137041e-05
+      ],
+      "mean": -3.1831957456898935e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.001,
+      "valid_pairs": 247
+     }
+    },
+    "challenger_mean_pinball": 0.0009185618968382145,
+    "common_forecasts": 247,
+    "mean_improvement": -3.183195745689899e-05,
+    "relative_gain": -0.03589814219999001,
+    "yearly_mean_improvement": {
+     "2022": 6.610294774310926e-05,
+     "2023": -3.683288878626105e-05
+    },
+    "yearly_pairs": {
+     "2022": 12,
+     "2023": 235
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009185618968382145,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 247,
+      "interval_95": [
+       -2.3091491158912305e-05,
+       7.1005338097253475e-06
+      ],
+      "mean": -5.8024388949844695e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.1365,
+      "valid_pairs": 247
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 247,
+      "interval_95": [
+       -2.4628850265221873e-05,
+       6.634262227925656e-06
+      ],
+      "mean": -5.8024388949844695e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.132,
+      "valid_pairs": 247
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 247,
+      "interval_95": [
+       -2.0255416143904108e-05,
+       6.270452268960653e-06
+      ],
+      "mean": -5.8024388949844695e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.1535,
+      "valid_pairs": 247
+     }
+    },
+    "challenger_mean_pinball": 0.0009243643357331988,
+    "common_forecasts": 247,
+    "mean_improvement": -5.802438894984331e-06,
+    "relative_gain": -0.006316873054452757,
+    "yearly_mean_improvement": {
+     "2022": 7.467627704179504e-05,
+     "2023": -9.911990347075338e-06
+    },
+    "yearly_pairs": {
+     "2022": 12,
+     "2023": 235
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 20,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 247
+  },
+  "sentiment_lagged_5_origins": {
+   "Q1_vs_Q0": {
+    "baseline_mean_pinball": 0.0008741302890549164,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 248,
+      "interval_95": [
+       -6.622470574372027e-05,
+       -1.4801892072478622e-05
+      ],
+      "mean": -3.798112325968797e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0005,
+      "valid_pairs": 248
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 248,
+      "interval_95": [
+       -7.37255715722163e-05,
+       -1.2968374763964177e-05
+      ],
+      "mean": -3.798112325968797e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0025,
+      "valid_pairs": 248
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 248,
+      "interval_95": [
+       -6.025288500576799e-05,
+       -1.8067594599685872e-05
+      ],
+      "mean": -3.798112325968797e-05,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.0,
+      "valid_pairs": 248
+     }
+    },
+    "challenger_mean_pinball": 0.0009121114123146042,
+    "common_forecasts": 248,
+    "mean_improvement": -3.7981123259687804e-05,
+    "relative_gain": -0.043450185556150746,
+    "yearly_mean_improvement": {
+     "2022": 7.55857487121338e-05,
+     "2023": -4.4263545964512165e-05
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 235
+    }
+   },
+   "Q2_vs_Q1": {
+    "baseline_mean_pinball": 0.0009121114123146042,
+    "bootstrap": {
+     "block_10": {
+      "block_length": 10,
+      "grid_size": 248,
+      "interval_95": [
+       -9.042604290941512e-06,
+       1.4912000686799157e-06
+      ],
+      "mean": -2.7831248738954646e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.126,
+      "valid_pairs": 248
+     },
+     "block_20": {
+      "block_length": 20,
+      "grid_size": 248,
+      "interval_95": [
+       -8.587342196568652e-06,
+       1.1706007193744386e-06
+      ],
+      "mean": -2.7831248738954646e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.1055,
+      "valid_pairs": 248
+     },
+     "block_5": {
+      "block_length": 5,
+      "grid_size": 248,
+      "interval_95": [
+       -8.822428310446439e-06,
+       1.5150915855161444e-06
+      ],
+      "mean": -2.7831248738954646e-06,
+      "replications": 2000,
+      "seed": 1729,
+      "share_positive": 0.117,
+      "valid_pairs": 248
+     }
+    },
+    "challenger_mean_pinball": 0.0009148945371884998,
+    "common_forecasts": 248,
+    "mean_improvement": -2.783124873895638e-06,
+    "relative_gain": -0.0030512992561216703,
+    "yearly_mean_improvement": {
+     "2022": 1.2625123220547992e-06,
+     "2023": -3.0069260804799476e-06
+    },
+    "yearly_pairs": {
+     "2022": 13,
+     "2023": 235
+    }
+   },
+   "config": {
+    "buffer_minutes": 15,
+    "counts_include_duplicates": false,
+    "exclude_recaps": false,
+    "exclude_source": null,
+    "sampling_rate": 0.27,
+    "sentiment_lag": 5,
+    "session_delay": 0
+   },
+   "eligible_forecasts": 248
+  }
+ },
+ "split": {
+  "design": "reduced_study",
+  "development": [
+   "2022-12-13",
+   "2023-12-13"
+  ],
+  "development_rows": 250,
+  "gdelt_alternative_training_rows": 454,
+  "test": [
+   "2023-12-14",
+   "2025-12-31"
+  ],
+  "test_rows": 500,
+  "training_rows": 691,
+  "usable_rows": 1441
+ },
+ "strongest_baseline": {
+  "0.01": "gaussian_ewma_d0.94_i63",
+  "0.05": "garch_t"
+ }
+}
