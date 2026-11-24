@@ -21,13 +21,13 @@ class LogVarianceFit:
     residual_variance: float
     rows: int
 
-    def log_forecast(self, features: Sequence[float]) -> float:
+    def log_forecast(self, features: Sequence[float] | np.ndarray) -> float:
         row = np.asarray(features, dtype=np.float64)
         if row.shape != (len(self.names),) or not np.isfinite(row).all():
             raise HarError("Forecast features do not match the fitted design.")
         return float(self.coefficients[0] + row @ self.coefficients[1:])
 
-    def variance_forecast(self, features: Sequence[float]) -> float:
+    def variance_forecast(self, features: Sequence[float] | np.ndarray) -> float:
         """Conditional mean of the variance under lognormal errors."""
         return float(np.exp(self.log_forecast(features) + 0.5 * self.residual_variance))
 

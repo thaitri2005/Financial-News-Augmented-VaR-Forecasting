@@ -133,11 +133,14 @@ def _log_mean(values: Sequence[float]) -> float:
     return float(np.log(np.mean(values)))
 
 
-def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
+def build_panel(inputs: VolatilityInputs, *, as_of: datetime | None = None) -> list[dict[str, Any]]:
     """One row per target session with both contracts' inputs and outcomes.
 
     Each input column is built only from data dated at or before the contract's
     information time; outcome columns (``ret_*``, ``var_*``) belong to session s.
+
+    With ``as_of`` (operations), a session that has not closed by that time has no
+    outcome and contributes nothing to later rows, even if a partial bar exists.
     """
     calendar = load_snapshot(inputs.calendar_path)
     closes = _read_series(inputs.fred_csv, "observation_date", "SP500", "%Y-%m-%d")
@@ -159,6 +162,10 @@ def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
     for position, session in enumerate(sessions):
         bar, fund = bars.get(session), etf.get(session)
         previous = closes.get(sessions[position - 1]) if position else None
+        if as_of is not None and origins[position].close_utc > as_of:
+            daily.append(None)
+            intraday.append(None)
+            continue
         # The index open is partly stale at 09:30. The stale part cancels in the
         # close-to-close sum, so index bars serve the pre-close contract only; the
         # at-open contract uses the fund's bars, which start from an opening auction.
@@ -177,9 +184,12 @@ def build_panel(inputs: VolatilityInputs) -> list[dict[str, Any]]:
         fund, fund_before = etf.get(session), etf.get(prior.session)
         row: dict[str, Any] = {"session": session, "month": (session.year, session.month)}
         close, last_close = closes.get(session), closes.get(prior.session)
+        closed = as_of is None or origin.close_utc <= as_of
+        if not closed:
+            close = None
         row["ret_pre_close"] = None if None in (close, last_close) else close / last_close - 1.0  # type: ignore[operator]
         row["var_pre_close"] = daily[position]
-        row["ret_at_open"] = None if fund is None else fund.close / fund.open - 1.0
+        row["ret_at_open"] = None if fund is None or not closed else fund.close / fund.open - 1.0
         row["var_at_open"] = intraday[position]
         for contract, lag, history in (("pre_close", 2, daily), ("at_open", 1, intraday)):
             window = history[position - lag - 21 : position - lag + 1]
@@ -287,7 +297,10 @@ def _eligible(row: Mapping[str, Any], contract: str) -> bool:
 def text_shares(
     inputs: VolatilityInputs, rows: Sequence[Mapping[str, Any]]
 ) -> dict[str, np.ndarray]:
-    """Term shares of every row's news window, with the vocabulary frozen at a declared date."""
+    """Term shares of every row's news window, with the vocabulary frozen at a declared date.
+
+    The returned mapping also carries the vocabulary under the key ``terms``.
+    """
     from newsvar.features.text_index import TextIndex
 
     index = TextIndex(
@@ -296,10 +309,17 @@ def text_shares(
         max_features=TEXT_MAX_FEATURES,
         min_document_count=TEXT_MIN_DOCUMENTS,
     )
-    return {
+    output = {
         contract: index.shares([row[f"window_{contract}"] for row in rows])
         for contract in CONTRACTS
     }
+    output["terms"] = np.asarray(index.terms)
+    return output
+
+
+def _features_ready(row: Mapping[str, Any], contract: str, names: Sequence[str]) -> bool:
+    """Inputs for a forecast exist and the news window is complete; the outcome may be unknown."""
+    return bool(row[f"complete_{contract}"]) and all(row.get(name) is not None for name in names)
 
 
 def forecast_all(
@@ -308,6 +328,7 @@ def forecast_all(
     news: Sequence[str] = (),
     *,
     text: np.ndarray | None = None,
+    include_unlabelled: bool = False,
 ) -> dict[date, dict[str, float]]:
     """Monthly-refit expanding forecasts of variance, VaR and ES over every feasible session.
 
@@ -316,11 +337,21 @@ def forecast_all(
     out-of-sample forecasts once 250 of them have known outcomes; before that it
     comes from in-sample fitted volatilities. With ``text`` the HAR residual is
     additionally regressed on window term shares.
+
+    Study runs forecast only rows that pass every eligibility rule, so all models
+    share one sample. With ``include_unlabelled`` (operations) a row is also
+    forecast when its inputs exist and its news window is complete even though
+    its outcome is not known yet; such rows never enter training or the tail.
     """
     names = [f"{name}_{contract}" for name in (*BASE_FEATURES[contract], *news)]
     lag = LAG[contract]
     usable = [index for index, row in enumerate(rows) if _eligible(row, contract)]
     matrix = {index: [float(rows[index][name]) for name in names] for index in usable}
+    if include_unlabelled:
+        for index, row in enumerate(rows):
+            if index not in matrix and _features_ready(row, contract, names):
+                matrix[index] = [float(row[name]) for name in names]
+    labelled = set(usable)
     forecasts: dict[date, dict[str, float]] = {}
     realized: list[tuple[int, float]] = []
     fitted = None
@@ -381,7 +412,8 @@ def forecast_all(
             )
             record[f"q_{alpha:g}"], record[f"es_{alpha:g}"] = tail.forecast(volatility_now)
         forecasts[row["session"]] = record
-        realized.append((index, float(row[f"ret_{contract}"]) / volatility_now))
+        if index in labelled:
+            realized.append((index, float(row[f"ret_{contract}"]) / volatility_now))
     return forecasts
 
 

@@ -71,6 +71,10 @@ strict = true
  module = ["exchange_calendars", "exchange_calendars.*", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "huggingface_hub", "huggingface_hub.*", "joblib", "pandas", "pandas.*", "matplotlib", "matplotlib.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["newsvar.study.volatility_report", "newsvar.study.report"]
+disable_error_code = ["arg-type"]
+
 [tool.uv]
 cache-dir = ".cache/uv"
 default-groups = ["dev", "ml", "modeling", "risk", "report"]

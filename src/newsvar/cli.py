@@ -302,16 +302,23 @@ def labels_audit(
     typer.echo(json.dumps(report, indent=2))
 
 
-def _gdelt_day_worker(arguments: tuple[str, str, str, str, int]) -> tuple[str, int, int]:
+def _gdelt_day_worker(
+    arguments: tuple[str, str, str, str, int, bool],
+) -> tuple[str, int, int]:
     from datetime import date as date_type
 
     from newsvar.data.gdelt import OK, extract_day, read_catalog
 
-    day_text, catalog_path, output_root, catalog_sha256, threads = arguments
+    day_text, catalog_path, output_root, catalog_sha256, threads, force = arguments
     day = date_type.fromisoformat(day_text)
     catalog = read_catalog(Path(catalog_path), start=day, end=day)
     manifest = extract_day(
-        day, catalog, Path(output_root), catalog_sha256=catalog_sha256, threads=threads
+        day,
+        catalog,
+        Path(output_root),
+        catalog_sha256=catalog_sha256,
+        threads=threads,
+        force=force,
     )
     batches = manifest["batches"]
     assert isinstance(batches, list)
@@ -335,6 +342,10 @@ def gdelt_extract(
     max_seconds: Annotated[
         int, typer.Option(min=0, help="Stop starting new days after this budget; 0 is unbounded.")
     ] = 0,
+    force: Annotated[
+        bool,
+        typer.Option(help="Re-extract committed days; use for days extracted before they ended."),
+    ] = False,
 ) -> None:
     """Stream catalogued GKG batches, keep relevance-matched titles, and commit per UTC day."""
     import hashlib
@@ -350,7 +361,7 @@ def gdelt_extract(
     pending = []
     for day in iter_days(first, last):
         manifest = load_day(output_root, day)
-        if manifest is None or not day_is_final(manifest):
+        if force or manifest is None or not day_is_final(manifest):
             pending.append(day)
     typer.echo(f"pending_days={len(pending)} catalog_sha256={catalog_sha256}")
     started, done = time.monotonic(), 0
@@ -361,7 +372,14 @@ def gdelt_extract(
             if max_seconds and time.monotonic() - started >= max_seconds:
                 break
             jobs = [
-                (day.isoformat(), str(catalog_path), str(output_root), catalog_sha256, threads)
+                (
+                    day.isoformat(),
+                    str(catalog_path),
+                    str(output_root),
+                    catalog_sha256,
+                    threads,
+                    force,
+                )
                 for day in pending[offset : offset + chunk]
             ]
             for day_text, ok_batches, title_rows in pool.imap(_gdelt_day_worker, jobs):
@@ -816,13 +834,15 @@ def _vol_setup(config: Path):  # type: ignore[no-untyped-def]
         )
     )
     cache = Path(settings.get("text_cache", "data/derived/text_shares")) / f"{key}.npz"
-    if cache.is_file():
-        loaded = np.load(cache)
-        text = {name: loaded[name] for name in study.CONTRACTS}
+    loaded = np.load(cache) if cache.is_file() else None
+    if loaded is not None and "terms" in loaded.files:
+        text = {name: loaded[name] for name in (*study.CONTRACTS, "terms")}
     else:
         text = study.text_shares(inputs, rows)
         cache.parent.mkdir(parents=True, exist_ok=True)
-        np.savez_compressed(cache, pre_close=text["pre_close"], at_open=text["at_open"])
+        np.savez_compressed(
+            cache, pre_close=text["pre_close"], at_open=text["at_open"], terms=text["terms"]
+        )
     return study, settings, inputs, rows, text
 
 
@@ -873,7 +893,9 @@ def vol_develop(
     end = date_type.fromisoformat(settings["development_end"])
     kept = [row for row in rows if row["session"] <= end]
     forecasts = study.all_forecasts(
-        kept, study.NEWS_VARIANTS, {name: matrix[: len(kept)] for name, matrix in text.items()}
+        kept,
+        study.NEWS_VARIANTS,
+        {name: text[name][: len(kept)] for name in study.CONTRACTS},
     )
     record = study.run_range(kept, forecasts, start=start, end=end)
     record["pooled_primary_model"] = {
@@ -997,3 +1019,167 @@ def vol_evaluate(
     typer.echo(
         json.dumps({k: v for k, v in record["decisions"].items() if k != "pooled"}, indent=2)
     )
+
+
+@vol_app.command("report")
+def vol_report(
+    registration: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    config: Annotated[Path, VOL_CONFIG] = Path("data/volatility_study.json"),
+    record_dir: Annotated[Path, typer.Option()] = Path("docs/records"),
+    private_dir: Annotated[Path, typer.Option()] = Path("data/derived/study"),
+    figure_dir: Annotated[Path, typer.Option()] = Path("docs/figures"),
+    macros: Annotated[Path, typer.Option()] = Path("report/generated.tex"),
+) -> None:
+    """Rebuild tables, figures and report macros from the saved evaluation and ledger."""
+    from datetime import date as date_type
+
+    from newsvar.study import volatility_report as report
+
+    record_in = json.loads(registration.read_text(encoding="utf-8"))
+    short = record_in["preregistration_id"][:12]
+    evaluation = json.loads(
+        (record_dir / f"volatility_evaluation_{short}.json").read_text(encoding="utf-8")
+    )
+    ledger = report.load_ledger(private_dir / f"volatility_forecasts_{short}.parquet")
+    extra = report.summary(ledger, evaluation, record_in)
+    _, _, _, rows, text = _vol_setup(config)
+    terms = report.term_weights(rows, text)
+    report.figures(
+        ledger,
+        evaluation,
+        date_type.fromisoformat(record_in["fresh_slice_start"]),
+        figure_dir,
+        terms,
+    )
+    extra["term_weights_descriptive"] = terms
+    _write_json(record_dir / f"volatility_summary_{short}.json", extra)
+    output = record_dir / "volatility_result_tables.md"
+    output.write_text(report.markdown(evaluation, record_in, extra), encoding="utf-8")
+    macros.parent.mkdir(parents=True, exist_ok=True)
+    macros.write_text(report.latex_macros(evaluation, record_in, extra), encoding="utf-8")
+    typer.echo(str(output))
+
+
+OPS_CONFIG = typer.Option(exists=True, dir_okay=False, help="Operations settings JSON.")
+
+
+@app.command()
+def update(
+    config: Annotated[Path, typer.Option(help="Operations settings JSON to write.")] = Path(
+        "data/operations.json"
+    ),
+    refresh_days: Annotated[int, typer.Option(min=1, max=30)] = 3,
+    corpus_start: Annotated[str, typer.Option()] = "2019-09-23",
+    sampling_rate: Annotated[float, typer.Option(min=0.01, max=1.0)] = 0.27,
+    model_snapshot: Annotated[Path, typer.Option()] = Path(
+        ".cache/models/ProsusAI_finbert/5fcfed04a2ca89adf4170ec0a4715103ed7745db"
+    ),
+) -> None:
+    """Refresh every input up to now and write the settings used by ``forecast``.
+
+    Steps: market closes, VIX and bars; an exchange calendar reaching two weeks
+    ahead; the GDELT catalog; titles for any missing day plus the most recent
+    days again; the corpus; FinBERT scores for newly sampled titles.
+    """
+    import csv
+    import subprocess
+    from datetime import UTC, datetime, timedelta
+
+    def run(*arguments: str) -> str:
+        typer.echo("-> newsvar " + " ".join(arguments))
+        done = subprocess.run(
+            [sys.executable, "-m", "newsvar", *arguments], capture_output=True, text=True
+        )
+        if done.returncode != 0:
+            typer.echo(done.stdout[-2000:] + done.stderr[-2000:], err=True)
+            raise typer.Exit(done.returncode)
+        return done.stdout
+
+    now = datetime.now(UTC)
+    today = now.date()
+    run("market", "fetch")
+    run("market", "fetch-ohlc")
+    with Path("data/raw/market/fred_sp500.csv").open(encoding="utf-8-sig") as stream:
+        first = next(
+            row["observation_date"] for row in csv.DictReader(stream) if row["SP500"] != ""
+        )
+    calendar = json.loads(
+        run(
+            "calendar", "build", "--start", first, "--end", (today + timedelta(days=14)).isoformat()
+        )
+    )
+    run("gdelt", "catalog")
+    run("gdelt", "extract", "--start", corpus_start, "--end", today.isoformat())
+    run(
+        "gdelt",
+        "extract",
+        "--force",
+        "--start",
+        (today - timedelta(days=refresh_days - 1)).isoformat(),
+        "--end",
+        today.isoformat(),
+    )
+    corpus = json.loads(run("news", "corpus", "--start", corpus_start, "--end", today.isoformat()))
+    run(
+        "news",
+        "score",
+        "--corpus",
+        corpus["path"],
+        "--model-snapshot",
+        str(model_snapshot),
+        "--sampling-rate",
+        str(sampling_rate),
+    )
+    settings = {
+        "calendar_path": calendar["path"],
+        "fred_csv": "data/raw/market/fred_sp500.csv",
+        "vix_csv": "data/raw/market/cboe_vix.csv",
+        "ohlc_json": "data/raw/market/yahoo_gspc_daily.json",
+        "etf_json": "data/raw/market/yahoo_spy_daily.json",
+        "corpus": corpus["path"],
+        "scores_root": "data/derived/scores",
+        "model_snapshot": str(model_snapshot),
+        "sampling_rate": sampling_rate,
+        "updated_at_utc": now.isoformat(),
+    }
+    _write_json(config, settings)
+    typer.echo(str(config))
+
+
+@app.command()
+def forecast(
+    session: Annotated[
+        str, typer.Option(help="Target session YYYY-MM-DD; default is the next one.")
+    ] = "",
+    config: Annotated[Path, OPS_CONFIG] = Path("data/operations.json"),
+    log: Annotated[Path, typer.Option(help="Append-only forecast log.")] = Path(
+        "data/forecasts/log.jsonl"
+    ),
+) -> None:
+    """Issue volatility, VaR and ES forecasts for one session from data known right now.
+
+    Run ``newsvar update`` first. The pre-close forecast for a session becomes
+    available 30 minutes before the previous session's close; the at-open
+    forecast once that session has opened. Each call appends to the log; earlier
+    entries are never rewritten.
+    """
+    from datetime import UTC, datetime
+    from datetime import date as date_type
+
+    from newsvar.data.calendar import load_snapshot
+    from newsvar.study.operate import forecast_session
+
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    inputs = _vol_inputs(settings)
+    now = datetime.now(UTC)
+    origins = load_snapshot(inputs.calendar_path).origins
+    if session:
+        target = date_type.fromisoformat(session)
+    else:
+        target = next(origin.session for origin in origins if origin.close_utc > now)
+    record = forecast_session(inputs, target, as_of=now)
+    record["issued_at_utc"] = now.isoformat()
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(record, sort_keys=True) + "\n")
+    typer.echo(json.dumps({k: v for k, v in record.items() if k != "inputs"}, indent=2))

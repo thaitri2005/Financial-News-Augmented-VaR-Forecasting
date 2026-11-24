@@ -302,10 +302,16 @@ def extract_day(
     catalog_sha256: str,
     fetch: Fetcher = http_fetch,
     threads: int = 8,
+    force: bool = False,
 ) -> dict[str, object]:
-    """Extract one UTC day and atomically commit its titles plus per-batch ledger."""
+    """Extract one UTC day and atomically commit its titles plus per-batch ledger.
+
+    A committed day whose catalogued batches all verified is returned unchanged
+    unless ``force`` is set. Force is needed for recent days: a day extracted
+    before it ended lists only the batches published so far.
+    """
     existing = load_day(root, day)
-    if existing is not None and day_is_final(existing):
+    if existing is not None and day_is_final(existing) and not force:
         return existing
     stamps = expected_stamps(day)
     listed = [catalog[stamp] for stamp in stamps if stamp in catalog]
