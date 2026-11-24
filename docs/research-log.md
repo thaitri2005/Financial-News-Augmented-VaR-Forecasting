@@ -1,12 +1,12 @@
 # Research log
 
-A dated record of what was tried, what was seen, and what was decided. Newest entries last. Development results are from target dates up to 2023-12-13 unless stated; nothing after that date was evaluated before the preregistration listed below.
+A dated record of what was tried, what was seen, and what was decided. Newest entries last. Development results are from target dates up to 2023-12-13 unless stated. For study 2, no model was evaluated after that date before its preregistration; study 1 had been evaluated on 2023-12-14 to 2025-12-31.
 
 ## 2026-11-24 — Study 1: sentiment in a quantile regression
 
 - Built the pipeline: GDELT title extraction, FinBERT scoring of a 27% title sample, 19 daily features, penalized linear quantile regression, baselines.
 - Preregistered and evaluated once on 500 forecasts (2023-12-14 to 2025-12-31).
-- **Result:** sentiment changed the 5% quantile loss by −0.06%; the interval includes zero. See [results.md](results.md).
+- **Result:** sentiment changed the 5% quantile loss by −0.06%; the interval includes zero. See [results-study1.md](results-study1.md).
 
 ## 2026-11-24 — Diagnosis
 
@@ -81,7 +81,7 @@ No look-ahead in the text path: vocabulary, folds, stacking, tail history and re
 
 | Finding | Action |
 |---|---|
-| The index value at 09:30 is partly stale, so the at-open "gap" understated the overnight move and the catch-up sat inside the target | Measured on development dates: the index gap has 51% of the variance of SPY's gap, and the index open-to-close return is 0.35 correlated with SPY's gap. **The at-open contract now uses SPY bars** for the gap, the variance history and the target |
+| The index value at 09:30 is partly stale, so the at-open "gap" understated the overnight move and the catch-up sat inside the target | Measured on 2019-10-01 to 2023-12-13: the index gap has 51% of the variance of SPY's gap, and the index open-to-close return is 0.35 correlated with SPY's gap (SPY gap without dividend adjustment; a reviewer obtained 0.20 on 2021–2023). **The at-open contract now uses SPY bars** for the gap, the variance history and the target |
 | In the pre-close contract the baseline sees prices only through `s−2` while headlines run to the cutoff on `s−1` | Disclosed in the preregistration. Oracle diagnostic below |
 | The commit check would have refused evaluation once the registration was committed | Source is now identified by content: the Git tree of `src` and hashes of `pyproject.toml` and `uv.lock` |
 | Several constants were not pinned (penalty grid, folds, stacking cap, tokenizer, transform, HAR windows, bootstrap settings) and the score table could change unnoticed | All are in the registration and compared at evaluation; the score parts are hashed; eligible holdout row counts are recorded |
@@ -157,3 +157,26 @@ Everything tried on development data is listed in this log. The design was chose
 - Added `newsvar update` and `newsvar forecast`. A day extracted before it ended is incomplete, so `update` re-extracts the last three days.
 - The panel takes an `as_of` time: a session that has not closed has no outcome, even when a partial price bar exists.
 - First live run: update in 5 minutes, forecast in 5.5 minutes. For the session of 2026-11-24 the text model gave a 95% VaR of −3.5% (pre-close) and −2.4% open-to-close (at-open). This is the first entry of the prospective log.
+
+## 2026-11-24 — Final reviews (two AI reviewer agents, read-only)
+
+### Claims and numbers
+
+The referee recomputed the primary test from the forecast ledger (t = 2.749, identical to the record), confirmed that the registered outcome follows from the rule, that the registered source tree equals the tree at registration and at evaluation, and that the generated numbers match the records. It found no wrong arithmetic. It did find overstatement, corrected in the report, README, results and methodology:
+
+| Finding | Correction |
+|---|---|
+| Robustness was reported for H1 only | Added: H2 fails the same checks (t = 1.37 without April 2025; two of three bootstrap intervals include zero); the at-open QLIKE gain depends on seven days |
+| The 2026 slice was described too kindly | Now "inconclusive": pooled QLIKE t = 0.55 and driven by two days; registered FZ0 loss p = 0.19 |
+| "Only term that clearly helps" contradicted the figure | Reworded: the news-count surprise has smaller gains with intervals excluding zero; the text model's at-open interval includes zero |
+| "Calibrated" and "clearly beats historical simulation" | Replaced with the actual tests: 5% coverage not rejected; dynamic-quantile test rejects at 1% pre-close; the gain over historical simulation is not significant on the holdout alone |
+| "Before any holdout outcome was evaluated" | Corrected: study 1 had been evaluated on the first 500 sessions |
+| Caveats missing next to the headline | Added to the abstract, the answer, the README and the results summary |
+| "Strong" could read as an effect size | Explained wherever it appears |
+| The "live forecast" was produced after both forecast times | Described as a demonstration, with the VIX values each set-up actually used |
+| The conditional test was read as state dependence | Corrected: the statistic includes the unconditional mean |
+| No mention of multiple testing, or that all reviewers were AI agents | Added to the limits |
+
+Not archived: the reviewers' reports, the audit ratings, the shifted-penalty-grid run and the reviewer's noise simulation. The oracle diagnostic is now in `scripts/oracle_diagnostic.py`.
+
+The frozen registration's power note quotes a development pooled t of 2.05 from the run before SPY prices were adopted; the development record gives 2.08.

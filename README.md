@@ -10,9 +10,17 @@ Does financial news improve next-day risk forecasts for the S&P 500? This reposi
 |---|---|---|
 | News signal | FinBERT sentiment averages | A ridge model that learns which headline words matter |
 | Model | Quantile regression on 19 features | HAR volatility model, then VaR and ES |
-| Preregistered result | No improvement | Volatility loss lower (p = 0.003); VaR/ES loss lower (p = 0.043) |
+| Preregistered result | No improvement | Volatility loss lower (one-sided p = 0.003); VaR/ES loss lower (one-sided p = 0.043) |
 
-On 722 holdout sessions (December 2023 to November 2026) the text model lowered volatility forecast loss by 4.8% and 2.3% in the two forecast set-ups and VaR loss by about 1.5%. The effect is small and comes with caveats: on the 224 sessions of 2026, the only fully untouched data, it is positive but not significant on its own for volatility.
+On 722 holdout sessions (December 2023 to November 2026) the text model lowered volatility forecast loss by 4.8% and 2.3% in the two forecast set-ups and VaR loss by about 1.5%.
+
+Read the result with these caveats:
+
+- **Small, and partly fragile.** The volatility result is robust to removing the most extreme month; the VaR/ES result is not.
+- **Reused period.** About two-thirds of the holdout was the test period of study 1, whose null result prompted the second design.
+- **Not yet confirmed on clean data.** On the 224 sessions of 2026, the only fully untouched data, the evidence is inconclusive.
+- **Daily-data baseline.** The comparison model sees daily prices only, not intraday prices.
+- **No human review.** The work and its reviews were done by AI agents.
 
 ![Cumulative volatility-forecast gain of the text model](docs/figures/vol_cumulative_qlike.png)
 

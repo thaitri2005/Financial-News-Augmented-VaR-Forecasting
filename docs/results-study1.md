@@ -82,7 +82,7 @@ On the 250 development forecasts (2023), sentiment added 0.5% over counts (inter
 
 It shows that tone aggregates from a broad feed of GDELT page titles, scored with a 2020 FinBERT, did not improve a regularized linear 5% VaR forecast for the S&P 500 in 2024–2025.
 
-It does not show that financial news carries no risk information. The test has low power, the feed is noisy, sentiment was sampled, and timing is a proxy. A diagnostic on the training and development data found a small but statistically visible link between negative tone and next-day volatility; see [methodology.md](methodology.md).
+It does not show that financial news carries no risk information. The test has low power, the feed is noisy, sentiment was sampled, and timing is a proxy. A diagnostic on the training and development data found a small but statistically visible link between negative tone and next-day volatility; see the [research log](research-log.md).
 
 The 2023-12-14 to 2025-12-31 period is now used up as a confirmatory test for this design.
 

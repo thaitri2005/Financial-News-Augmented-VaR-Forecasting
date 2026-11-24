@@ -84,20 +84,20 @@ Filtered historical simulation: divide each past return by its volatility foreca
 | Pooling | The two set-ups' daily improvements are averaged per session and tested once |
 | Supporting | Moving-block bootstrap (2,000 replications; blocks 20, 10, 5); Holm-adjusted per-set-up tests; Giacomini–White conditional test; Kupiec coverage and dynamic-quantile tests |
 
-The baseline and the text model are nested and estimated on an expanding window, which makes the Diebold–Mariano test conservative. In a reviewer's simulation with pure-noise text, it rejected in 0.8% of runs at a nominal 5%.
+The baseline and the text model are nested and estimated on an expanding window, which makes the Diebold–Mariano test on QLIKE (H1) conservative. In a reviewer's simulation with pure-noise text it rejected in 0.8% of runs at a nominal 5%; that simulation was not archived. The same has not been checked for the FZ0 test (H2).
 
 ## Periods
 
 | Period | Target dates | Use |
 |---|---|---|
 | Development | 2021-01-04 to 2023-12-13 | Design choices; all results in the research log |
-| Holdout | 2023-12-14 to 2026-11-20 | Evaluated once |
+| Holdout | 2023-12-14 to 2026-11-20 | Evaluated once for this design |
 | … of which earlier slice | 2023-12-14 to 2025-12-31 | Was the test period of study 1 |
 | … of which fresh slice | 2026-01-02 to 2026-11-20 | Never evaluated in any form before |
 
 ## Preregistration
 
-The [record](records/volatility_preregistration_20261124.json) was committed before the holdout was evaluated. It fixes:
+The [record](records/volatility_preregistration_20261124.json) was committed before any study 2 model was evaluated on the holdout. (Study 1 had already been evaluated on the holdout's first 500 sessions.) It fixes:
 
 - inputs by hash, including the score table;
 - source code by content (Git tree of `src`, and hashes of `pyproject.toml` and `uv.lock`);
@@ -108,13 +108,13 @@ The [record](records/volatility_preregistration_20261124.json) was committed bef
 
 **H1 (primary):** the text model has lower QLIKE than the baseline, pooled test.
 **H2 (key secondary):** the same for the 5% FZ0 loss.
-**Verdict:** *confirmed* if H1 has p < 0.05, both set-ups improve and FZ0 does not worsen; *strong* if H2 also has p < 0.05.
+**Outcome labels:** *confirmed* if H1 has one-sided p < 0.05, both set-ups improve and FZ0 does not worsen; *strong* if H2 also has one-sided p < 0.05. "Strong" names the rule; it is not an effect size.
 
 The evaluation command checks every recorded value against the code and data, writes a marker before computing any outcome, and refuses to run twice.
 
 ## Independent review
 
-Two reviewer agents audited the study before the holdout was opened, using synthetic data only. Neither found look-ahead. Their findings and the fixes are tabulated in the [research log](research-log.md). A third review covered the finished project.
+Two AI reviewer agents, started by the project's own AI agent and working read-only, audited the study before the holdout was opened, using synthetic data only. Neither found look-ahead. Two more reviewed the finished project: one checked every claim against the records, the other the code and operational commands. Findings and fixes are tabulated in the [research log](research-log.md). The reviewers' full reports were not archived, and no human has reviewed the work.
 
 ## Limits
 

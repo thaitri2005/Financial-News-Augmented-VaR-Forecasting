@@ -33,13 +33,17 @@ a second design: forecast volatility first, learn from the data which headline w
 and derive Value-at-Risk (VaR) and expected shortfall (ES) from the volatility forecast.
 The second study was preregistered and evaluated once on \PooledHoldQlikeN{} sessions from
 \HoldoutStart{} to \HoldoutEnd{}. A ridge model of headline terms lowered the volatility
-forecast loss of a strong baseline in both forecast set-ups (pooled one-sided $p=\HOneP$) and
-lowered the joint VaR/ES loss ($p=\HTwoP$). The gains are modest: \HoldPreQlikeGain{} and
-\HoldOpenQlikeGain{} in volatility loss and about 1.3--1.5\% in VaR loss. Generic sentiment
-scores add little. On the 224 sessions of 2026, which had never been evaluated in any form,
-the volatility gain is positive but not significant by itself, while the VaR-loss gain is.
-The result is a working, calibrated daily forecasting system and a small, statistically
-supported contribution from news text.
+forecast loss of a daily-data baseline (a HAR model with VIX) in both forecast set-ups (pooled
+one-sided $p=\HOneP$) and lowered the joint VaR/ES loss (one-sided $p=\HTwoP$). The gains are
+modest: \HoldPreQlikeGain{} and \HoldOpenQlikeGain{} in volatility loss and about 1.3--1.5\%
+in VaR loss. Generic sentiment scores add little. Two caveats belong next to this result.
+About two-thirds of the holdout (December 2023 to December 2025) was the test period of the
+first study, whose null result prompted the second design. And on the 224 sessions of 2026,
+never evaluated before, the evidence is inconclusive: the pooled volatility gain is not
+significant ($t=\PooledFreshQlikeT$) and is negative at the open; the 5\% quantile-loss gain
+is nominally significant (one-sided $p=\PooledFreshPinP$, unadjusted) and the joint VaR/ES
+gain is not ($p=\PooledFreshFzP$). The result is a working daily forecasting system and a
+small, statistically supported but not yet independently confirmed contribution from news text.
 \end{abstract}
 
 \section{Question and answer}
@@ -48,7 +52,10 @@ supported contribution from news text.
 what market data already provide?
 
 \textbf{Answer.} Yes, modestly, when the news enters as a learned text signal in a volatility
-model. No, when it enters as generic sentiment in a quantile regression.
+model. No, when it enters as generic sentiment in a quantile regression. The ``yes'' is measured
+against a baseline that sees daily prices only, on a holdout whose first two years had served
+as the test period of study 1, and it is not yet confirmed on fully untouched data
+(Section~\ref{sec:fresh}).
 
 \begin{center}
 \begin{tabular}{@{}p{0.30\linewidth}p{0.30\linewidth}p{0.30\linewidth}@{}}
@@ -59,7 +66,7 @@ News signal & FinBERT sentiment averages & Ridge model of headline terms \\
 Model & 19-feature quantile regression & HAR volatility model, then VaR and ES \\
 Test period & 500 sessions, Dec 2023--Dec 2025 & \PooledHoldQlikeN{} sessions, Dec 2023--Nov 2026 \\
 Primary result & $-0.06\%$ change in 5\% quantile loss & pooled volatility loss lower, $p=\HOneP$ \\
-Registered verdict & not supported & \textbf{\Verdict} \\
+Registered outcome & not supported & both registered hypotheses passed \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -73,7 +80,7 @@ All data are free and public. Nothing was purchased and no account was needed.
 \toprule
 \textbf{Source} & \textbf{Use} \\
 \midrule
-FRED, S\&P 500 closes & Close-to-close returns (target of the pre-close contract) \\
+FRED, S\&P 500 closes & Close-to-close returns (target of the pre-close set-up) \\
 Cboe, VIX closes & Volatility control \\
 Yahoo, daily bars for the index and for SPY & Range-based variance; open-to-close return of SPY \\
 GDELT Global Knowledge Graph & Page titles of web news, in 15-minute batches \\
@@ -107,6 +114,8 @@ proxy timestamps, not a record of forecasts issued at the time.
 news. Orange: the period being forecast.}
 \end{figure}
 
+The report uses ``set-up'' for a combination of forecast time and target.
+
 \textbf{Pre-close.} The forecast for session $s$ is made 30 minutes before the close of
 $s{-}1$. That day's close is not yet known, so market inputs stop at $s{-}2$. The target is the
 index return from the close of $s{-}1$ to the close of $s$.
@@ -122,11 +131,14 @@ the target. An independent reviewer raised this before the test was run.
 
 \subsection{Volatility target}
 Daily variance is measured from price ranges, which is far less noisy than a squared return.
-For the at-open contract we use the Garman--Klass estimator on SPY's bar:
+With $O$, $H$, $L$ and $C$ the open, high, low and close of a session, the at-open set-up uses
+the Garman--Klass estimator on SPY's bar:
 \[
 \sigma^2_{\mathrm{GK}} = \tfrac12\left(\ln\tfrac{H}{L}\right)^2-(2\ln 2-1)\left(\ln\tfrac{C}{O}\right)^2 .
 \]
-For the pre-close contract we add the squared overnight return of the index.
+For the pre-close set-up we add the squared overnight return of the index. The index's opening
+value is partly stale, which shifts some variance between the overnight and intraday parts,
+but their sum, which is the target, is roughly preserved.
 
 \subsection{Baseline: HAR with VIX}
 The baseline is a log-linear heterogeneous autoregressive (HAR) model \cite{corsi}:
@@ -158,14 +170,23 @@ This is filtered historical simulation.
 
 \subsection{Evaluation}
 \begin{itemize}
-\item \textbf{Volatility:} QLIKE loss, which is robust to noise in the variance measure \cite{patton}.
-\item \textbf{VaR:} pinball (quantile) loss. \textbf{VaR and ES jointly:} the FZ0 loss \cite{fz,pzc}.
-\item \textbf{Tests:} one-sided Diebold--Mariano test with Newey--West errors \cite{dm}; paired
-moving-block bootstrap; a conditional predictive ability test \cite{gw}; coverage tests.
+\item \textbf{Volatility:} QLIKE, a standard loss for variance forecasts that is robust to noise
+in the variance measure \cite{patton}. Lower is better.
+\item \textbf{VaR:} pinball (quantile) loss, in basis points (bp; 1\,bp $=0.01\%$ of return).
+\textbf{VaR and ES jointly:} the FZ0 loss \cite{fz,pzc}.
+\item \textbf{Tests:} a one-sided Diebold--Mariano test with Newey--West errors \cite{dm} asks
+whether the mean daily loss difference favours the text model; its $t$ statistic above 1.65
+corresponds to a one-sided $p$ below 0.05. Also: paired moving-block bootstrap intervals; a
+conditional predictive ability test \cite{gw}; coverage tests; and the Holm correction when
+the two set-ups are tested separately.
 \end{itemize}
+Only H1 and H2 below were registered as tests. Every other $t$ and $p$ in this report is
+unadjusted and exploratory; with five news terms, two set-ups, three losses and three periods,
+some would look significant by chance.
 
 \subsection{Preregistration}
-Before any holdout outcome was evaluated, a record was committed that fixes the inputs by hash,
+Before any study-2 model was evaluated on the holdout (study 1 had already been evaluated on its
+first 500 sessions), a record was committed that fixes the inputs by hash,
 the source code by content, every model constant, the holdout dates, the hypotheses, the test
 and the rule for the verdict (record \texttt{\RegistrationId}). The evaluation command checks
 all of these, refuses to run a second time, and wrote its result once.
@@ -174,8 +195,9 @@ all of these, refuses to run a second time, and wrote its result once.
 \textbf{H1 (primary).} The text model has lower QLIKE than the baseline, tested once on the
 average of the two set-ups' daily improvements.\\
 \textbf{H2 (key secondary).} The same for the 5\% FZ0 loss.\\
-\textbf{Verdict.} \emph{Confirmed} if H1 has $p<0.05$, both set-ups improve, and FZ0 does not
-worsen. \emph{Strong} if H2 also has $p<0.05$.
+\textbf{Outcome labels.} \emph{Confirmed} if H1 has one-sided $p<0.05$, both set-ups improve,
+and FZ0 does not worsen. \emph{Strong} if H2 also has one-sided $p<0.05$. ``Strong'' names
+this rule; it says nothing about the size of the effect.
 \end{quote}
 
 \section{Study 1: sentiment in a quantile regression}
@@ -229,9 +251,11 @@ Dec 2023--2025 & QLIKE & \PooledEarlierQlikeN & \PooledEarlierQlikeT & \PooledEa
 \end{tabular}
 \end{center}
 
-Both hypotheses pass on the whole holdout, so the registered verdict is \textbf{\Verdict}.
-Each set-up also passes by itself after Holm correction ($p=\HolmPre$ pre-close, $p=\HolmOpen$
-at-open). Only the first two rows were registered as tests; the slice rows are descriptive.
+Both hypotheses pass on the whole holdout, so the registered outcome is ``\Verdict'' in the
+sense defined above. For H1, each set-up also passes by itself after Holm correction
+($p=\HolmPre$ pre-close, $p=\HolmOpen$ at-open). H2 passes narrowly; under a two-sided
+convention its $p$ would be 0.086. Only the first two rows were registered as tests; the slice
+rows are descriptive.
 
 \subsection{By set-up}
 
@@ -255,20 +279,25 @@ QLIKE gain of text & \multicolumn{2}{c}{\HoldPreQlikeGain{} ($t=\HoldPreQlikeT$)
 \end{tabular}
 \end{center}
 
-Coverage is acceptable for every model. For scale, the baseline itself beats 250-day historical
-simulation by \HoldPreHarVsHsPin{} (pre-close) and \HoldOpenHarVsHsPin{} (at-open) in 5\%
-pinball loss, and historical simulation has 15 breaches at the 1\% level where about 7 are
-expected. Most of the system's accuracy comes from the volatility model; news adds a small
-further step.
+Unconditional 5\% coverage is not rejected for the baseline or the text model (Kupiec test).
+The dynamic-quantile test, which also looks at clustering of breaches, does not reject either
+at 5\%, but rejects both at the 1\% level in the pre-close set-up ($p=0.006$ and $0.013$).
+For scale, the baseline's 5\% pinball loss is \HoldPreHarVsHsPin{} (pre-close) and
+\HoldOpenHarVsHsPin{} (at-open) lower than that of 250-day historical simulation; on this
+holdout those differences are not significant by themselves ($t=1.3$ and $1.5$), though they
+were on development data ($t=2.1$ and $2.9$). Historical simulation has 15 breaches at the 1\%
+level where about 7 are expected. Most of the system's accuracy comes from the volatility
+model; news adds a small further step.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{../docs/figures/vol_cumulative_qlike.png}
 \caption{Running total of the text model's daily QLIKE improvement over the baseline.
-A rising line means the text model is ahead.}
+A rising line means the text model is ahead. Much of the rise comes in a few jumps, the
+largest in April 2025, and the at-open line falls in 2026.}
 \end{figure}
 
-\subsection{The never-evaluated 2026 slice}
+\subsection{The never-evaluated 2026 slice}\label{sec:fresh}
 
 \begin{center}
 \begin{tabular}{@{}lrr@{}}
@@ -281,10 +310,18 @@ QLIKE gain of text & \FreshPreQlikeGain{} ($t=\FreshPreQlikeT$) & \FreshOpenQlik
 \end{tabular}
 \end{center}
 
-This slice is the cleanest evidence, and it is mixed. Pre-close volatility forecasts improve
-by about the same amount as before. At-open volatility forecasts do not improve in 2026,
-although the VaR loss still does. With 224 sessions the slice cannot settle the question
-by itself; it does not contradict the main result and does not independently confirm it.
+This slice is the cleanest evidence, and it is inconclusive.
+\begin{itemize}
+\item Pooled over both set-ups, the volatility gain is not significant
+($t=\PooledFreshQlikeT$). It comes from two days, 29 January and 20 November 2026; without
+them the mean is slightly negative ($t=-0.17$).
+\item At the open the text model's volatility forecasts are worse than the baseline's in 2026.
+\item The 5\% pinball gain is nominally significant when pooled (one-sided
+$p=\PooledFreshPinP$, unadjusted), but the registered joint VaR/ES loss is not
+($p=\PooledFreshFzP$).
+\end{itemize}
+With 224 sessions the slice cannot settle the question. It does not contradict the main result
+and does not independently confirm it.
 
 \subsection{Which news signal matters}
 
@@ -292,13 +329,16 @@ by itself; it does not contradict the main result and does not independently con
 \centering
 \includegraphics[width=\linewidth]{../docs/figures/vol_gains_by_term.png}
 \caption{QLIKE improvement over the baseline on the holdout for each news term, with 95\%
-bootstrap intervals. Only the text model was a registered hypothesis.}
+bootstrap intervals. Only the text model was a registered hypothesis. Its gain is the largest
+in both set-ups, but its at-open interval includes zero.}
 \end{figure}
 
 \begin{itemize}
-\item The learned text model is the only term that clearly helps in both set-ups.
-\item A simple news-volume surprise also lowers QLIKE (\HoldPreCountGain{} and
-\HoldOpenCountGain), but barely moves VaR loss. This was exploratory.
+\item The text model has the largest gains and is the only term that also lowers VaR loss.
+Its at-open QLIKE interval includes zero ($t=\HoldOpenQlikeT$).
+\item A simple news-volume surprise has smaller QLIKE gains (\HoldPreCountGain{} and
+\HoldOpenCountGain) whose intervals exclude zero in both set-ups, but it barely moves VaR
+loss. This was exploratory.
 \item FinBERT sentiment gives \HoldPreShareSurpriseGain{} pre-close and
 \HoldOpenShareSurpriseGain{} at-open, with intervals that include zero. This agrees with study 1.
 \end{itemize}
@@ -315,45 +355,57 @@ record'' lower it). Others are noise from an unfiltered web feed (``wisconsin'',
 
 These checks were run after the evaluation and are descriptive.
 \begin{itemize}
-\item \textbf{Not one episode.} Without April 2025 (the tariff shock) the pooled QLIKE test
-still gives $t=2.67$.
-\item \textbf{Concentration.} The seven best days (1\%) supply 53\% of the total QLIKE gain.
-This is usual for QLIKE, which rewards being less wrong on extreme days. Removing the best and
-worst 1\% of days gives $t=4.27$.
-\item \textbf{State dependence.} The conditional test rejects equal accuracy in both set-ups
-($p=\HoldPreGwP$ and $\HoldOpenGwP$): the size of the gain depends on market conditions.
+\item \textbf{H1 does not rest on one episode.} April 2025 (the tariff shock) supplies 28\% of
+the pooled QLIKE gain. Without that month the pooled QLIKE test still gives $t=2.67$.
+\item \textbf{H1 is concentrated in few days.} The seven best days (1\%) supply 53\% of the
+net pooled QLIKE gain. Removing the seven best and seven worst days gives $t=4.27$.
+The at-open gain is the fragile part: its seven best days supply 88\% of its net gain, and
+without them $t=0.26$.
+\item \textbf{H2 is fragile.} Without April 2025 the pooled FZ0 test gives $t=1.37$
+($p=0.085$); without the single best day, $t=1.60$ ($p=0.055$). Two of the three registered
+bootstrap intervals for FZ0 include zero, and neither set-up is significant alone.
+\item \textbf{Conditional test.} It rejects equal conditional accuracy in both set-ups
+($p=\HoldPreGwP$ and $\HoldOpenGwP$). The statistic includes the unconditional mean, so this
+is not separate evidence that the gain varies with market conditions.
 \item \textbf{Not a restatement of that day's market.} On development data, giving the pre-close
 baseline the same-day variance and VIX, which it cannot have in practice, left the text
-model's volatility gain at $+3.4\%$ ($t=3.3$). Its VaR gain shrank from $+2.2\%$ to $+0.6\%$.
+model's volatility gain at $+3.4\%$ ($t=3.3$). Its VaR gain shrank from $+2.2\%$ to $+0.6\%$
+(\texttt{scripts/oracle\_diagnostic.py}).
 \end{itemize}
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{../docs/figures/vol_var_forecasts.png}
 \caption{Pre-close 95\% VaR and expected shortfall from the text model against realized
-returns on the holdout. Circles mark breaches. The line breaks where GDELT has no data.}
+returns on the holdout. Circles mark breaches. The forecast widens quickly in turbulent periods
+and breaches are spread over the period. The line breaks where GDELT has no data.}
 \end{figure}
 
 \section{Limits}
 
 \begin{enumerate}
-\item \textbf{The effect is small.} Volatility loss falls 2--5\% and VaR loss about 1.5\%. It is
-statistically supported, not large.
+\item \textbf{The effect is small and partly fragile.} Volatility loss falls 2--5\% and VaR
+loss about 1.5\%. The volatility result (H1) survives the robustness checks; the VaR/ES result
+(H2) and the at-open volatility gain do not survive all of them.
 \item \textbf{Part of the holdout was used before.} December 2023 to December 2025 was the test
 period of study 1, and that study's failure prompted this design. No volatility or text model
 had been evaluated there, but the design is not blind to that period. The 2026 slice is fully
-clean and is only partly supportive.
+clean and is inconclusive.
 \item \textbf{The baseline uses daily data only.} In the pre-close set-up headlines run to
 15:30 while prices stop at the previous close. The result shows that news text improves a
 daily-data model. It does not show that news beats intraday prices, which were not available.
 \item \textbf{Noisy source.} GDELT titles are web page titles, not curated financial headlines.
-In an audit of 200 titles, about one in seven was off-topic. The audit was rated by the
-project's AI agent, not by a human.
+In an audit of 200 titles from 2019--2022, chosen in equal numbers by FinBERT label rather than
+at random, about one in seven was off-topic. The audit was rated by the project's AI agent,
+not by a human, and the individual ratings were not archived.
 \item \textbf{Proxy timestamps.} See Section 2.
 \item \textbf{Design choices were made on development data.} Five news terms, two penalty grids,
 two feature forms and two price sources were compared there, and are all listed in the research
 log. One of them, the penalty grid, changes the development result noticeably.
-\item \textbf{The 1\% tail} is not improved by news and has too few breaches to say much.
+\item \textbf{The 1\% tail} is not significantly improved by news and has too few breaches to
+say much.
+\item \textbf{Many comparisons.} Apart from H1 and H2, every $t$ and $p$ here is unadjusted.
+\item \textbf{No human review.} The work, the audit and the reviews were done by AI agents.
 \end{enumerate}
 
 \section{The system}
@@ -380,30 +432,38 @@ writes a checksummed, content-addressed artifact and can be resumed.
 \end{tabular}
 \end{center}
 
-\textbf{A live forecast.} On 24 November 2026 the system issued, for that day's session, a
-95\% VaR of $-3.5\%$ and ES of $-5.2\%$ (pre-close set-up, index close-to-close) and a 95\% VaR
-of $-2.4\%$ (at-open set-up, SPY open-to-close). VIX had closed at 26.6 the day before.
+\textbf{A demonstration run.} On 24 November 2026 at 14:51 New York time, after both forecast
+times for that session had passed, the system produced for that day's session a 95\% VaR of
+$-3.5\%$ and ES of $-5.2\%$ (pre-close set-up, index close-to-close) and a 95\% VaR of
+$-2.4\%$ (at-open set-up, SPY open-to-close). The pre-close forecast used the VIX close of
+20 November (35.9); the at-open forecast that of 23 November (26.6). This entry shows that the
+commands work; it is not a prospective forecast.
 
 \textbf{Resources.} Everything ran on four CPU cores and 15\,GiB of memory: about three hours to
 stream the news archive, five hours to score titles with FinBERT (not needed by the text
 model), and minutes for everything else.
 
 \textbf{Quality control.} The code has 105 automated tests on synthetic data, including tests
-that changing future data cannot change an earlier forecast. Two independent reviewer agents
-audited the second study before its test was run. They found no look-ahead; they did find a
-stale opening price, a mis-sized test, in-sample tail estimates and weak registration checks,
-all of which were fixed before registration. A third review covered the finished project.
+that changing future data cannot change an earlier forecast. Two AI reviewer agents, started by
+the project's own AI agent and working read-only, audited the second study before its test was
+run. They found no look-ahead; they did find a stale opening price, a mis-sized test, in-sample
+tail estimates and weak registration checks, all of which were fixed before registration.
+Two more reviewed the finished project: one audited every number and claim in this report
+against the records and made it more cautious in several places (the fragility of H2, the
+2026 slice, coverage wording); the other audited the code and the operational commands.
+No human has reviewed the work.
 
 \section{Conclusion}
 
 A free, noisy news feed does carry a little information about tomorrow's risk that a good
 daily-data volatility model lacks. It shows up when the model is allowed to learn which words
 matter and when the target is volatility; it does not show up as generic sentiment in a tail
-regression. The evidence meets a preregistered standard on the whole holdout and is suggestive
-but not conclusive on the one fully clean year.
+regression. The evidence meets a preregistered standard on the whole holdout and is
+inconclusive on the one fully clean year.
 
-The practical value today is the forecasting system itself: a calibrated VaR and ES forecaster
-that clearly beats historical simulation, with a small news component on top.
+The practical value today is the forecasting system itself: a VaR and ES forecaster with
+acceptable 5\% coverage and lower loss than historical simulation (4.7\% and 9.9\% on the
+holdout, not significant there by themselves), with a small news component on top.
 
 \textbf{What would strengthen the claim.} (i) Keep logging forecasts prospectively: every new
 session is clean evidence with real timestamps. (ii) Test a curated headline feed with a longer
