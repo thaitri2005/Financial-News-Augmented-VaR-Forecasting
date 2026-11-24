@@ -1,0 +1,86 @@
+{
+ "retrieved_at_utc": "2026-11-24T09:56:07.730256+00:00",
+ "scope": "Fresh public FRED SP500 and Cboe VIX snapshots retrieved in the cloud development environment on 2026-11-24. The September 2026 private snapshots stayed on the original laptop; FRED's rolling ten-year window now starts 2016-11-25.",
+ "snapshots": [
+  {
+   "name": "fred_sp500.csv",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500",
+   "path": "data/raw/market_20261124/fred_sp500.csv",
+   "bytes": 48872,
+   "sha256": "0b7fbb7a0acd52b9cc2b06d7494f0ad648ab5b629e69b51ca53254bf76ad6b8e",
+   "http_status": 200,
+   "audit": {
+    "rows": 2606,
+    "valid_values": 2511,
+    "year_counts": {
+     "2016": 25,
+     "2017": 251,
+     "2018": 251,
+     "2019": 252,
+     "2020": 253,
+     "2021": 252,
+     "2022": 251,
+     "2023": 250,
+     "2024": 252,
+     "2025": 250,
+     "2026": 224
+    },
+    "first_date": "2016-11-25",
+    "last_date": "2026-11-20"
+   }
+  },
+  {
+   "name": "cboe_vix.csv",
+   "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+   "path": "data/raw/market_20261124/cboe_vix.csv",
+   "bytes": 475165,
+   "sha256": "409c4e80171f82285054875e0095aab5fd19b59670c987bc0e58f5919a69f3ee",
+   "http_status": 200,
+   "audit": {
+    "rows": 9322,
+    "valid_values": 9322,
+    "year_counts": {
+     "1990": 253,
+     "1991": 252,
+     "1992": 254,
+     "1993": 253,
+     "1994": 252,
+     "1995": 252,
+     "1996": 254,
+     "1997": 251,
+     "1998": 252,
+     "1999": 251,
+     "2000": 252,
+     "2001": 248,
+     "2002": 252,
+     "2003": 252,
+     "2004": 253,
+     "2005": 252,
+     "2006": 251,
+     "2007": 251,
+     "2008": 253,
+     "2009": 252,
+     "2010": 252,
+     "2011": 252,
+     "2012": 250,
+     "2013": 252,
+     "2014": 252,
+     "2015": 252,
+     "2016": 252,
+     "2017": 251,
+     "2018": 251,
+     "2019": 252,
+     "2020": 253,
+     "2021": 252,
+     "2022": 256,
+     "2023": 257,
+     "2024": 259,
+     "2025": 258,
+     "2026": 231
+    },
+    "first_date": "1990-01-02",
+    "last_date": "2026-11-23"
+   }
+  }
+ ]
+}

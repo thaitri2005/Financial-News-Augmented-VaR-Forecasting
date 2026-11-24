@@ -139,6 +139,7 @@ def build_garch_attempts(
     labels: Iterable[AvailableLabel],
     *,
     simulations: int = 50_000,
+    alpha: float = 0.05,
 ) -> tuple[ForecastAttempt, ...]:
     """Monthly GARCH parameter refits with daily state updates from eligible labels."""
     if not origins:
@@ -207,6 +208,7 @@ def build_garch_attempts(
                     state,
                     origin_session=origin.session,
                     model_id=model_id,
+                    alpha=alpha,
                     simulations=simulations,
                     filtered_historical=filtered,
                 )

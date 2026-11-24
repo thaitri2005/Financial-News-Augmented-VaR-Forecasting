@@ -78,7 +78,7 @@ def test_range_and_timezone_inputs_fail_cleanly() -> None:
     with pytest.raises(ValueError, match="no XNYS"):
         build_xnys_snapshot(date(2025, 7, 4), date(2025, 7, 4))
     with pytest.raises(ValueError, match="coverage"):
-        build_xnys_snapshot(date(2027, 9, 16), date(2027, 9, 16))
+        build_xnys_snapshot(date(2090, 9, 15), date(2090, 9, 15))
     with pytest.raises(ValueError, match="Cutoff"):
         build_xnys_snapshot(date(2025, 7, 3), date(2025, 7, 3), issue_minutes_before_close=30)
     origin = build_xnys_snapshot(date(2025, 7, 3), date(2025, 7, 3)).origins[0]

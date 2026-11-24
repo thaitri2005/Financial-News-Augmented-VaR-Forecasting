@@ -1,3 +1,4 @@
+import math
 from datetime import date
 
 import pytest
@@ -51,3 +52,31 @@ def test_transition_counts_do_not_bridge_missing_xnys_session() -> None:
     ]
     counts = transition_counts(rows, calendar=calendar)
     assert counts["eligible_pairs"] == 0
+
+
+def test_coverage_tests_handle_empty_cells_without_pseudocounts() -> None:
+    from newsvar.metrics import christoffersen_test, kupiec_test
+
+    exact = kupiec_test(25, 500, 0.05)
+    assert exact["statistic"] == pytest.approx(0.0, abs=1e-9) and exact["p_value"] == 1.0
+    assert kupiec_test(0, 250, 0.05)["statistic"] == pytest.approx(-2 * 250 * math.log(0.95))
+    assert kupiec_test(60, 500, 0.05)["p_value"] < 0.001
+    sparse = christoffersen_test({"n00": 10, "n01": 0, "n10": 0, "n11": 0}, 0.05)
+    assert sparse["status"] == "not_estimable"
+    clustered = christoffersen_test({"n00": 440, "n01": 10, "n10": 10, "n11": 15}, 0.05)
+    assert clustered["status"] == "estimated" and clustered["independence_p_value"] < 0.001
+
+
+def test_block_bootstrap_keeps_gaps_and_is_seeded() -> None:
+    from newsvar.metrics import MetricInputError, block_bootstrap_mean
+
+    grid = [0.001] * 100 + [None] * 20 + [0.001] * 100
+    result = block_bootstrap_mean(grid, block_length=20, replications=200)
+    assert result["valid_pairs"] == 200 and result["grid_size"] == 220
+    assert result["interval_95"] == pytest.approx((0.001, 0.001))
+    assert result == block_bootstrap_mean(grid, block_length=20, replications=200)
+    mixed = block_bootstrap_mean([1.0, -1.0] * 100, block_length=5, replications=500)
+    low, high = mixed["interval_95"]
+    assert low < 0.0 < high
+    with pytest.raises(MetricInputError):
+        block_bootstrap_mean([None] * 40)

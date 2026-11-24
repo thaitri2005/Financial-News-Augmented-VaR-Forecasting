@@ -1,6 +1,7 @@
 """Small stage CLI; implemented commands do not imply later pipeline readiness."""
 
 import json
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -15,6 +16,12 @@ market_app = typer.Typer(no_args_is_help=True, add_completion=False)
 app.add_typer(market_app, name="market")
 labels_app = typer.Typer(no_args_is_help=True, add_completion=False)
 app.add_typer(labels_app, name="labels")
+gdelt_app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(gdelt_app, name="gdelt")
+news_app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(news_app, name="news")
+study_app = typer.Typer(no_args_is_help=True, add_completion=False)
+app.add_typer(study_app, name="study")
 
 
 @app.callback()
@@ -291,3 +298,293 @@ def labels_audit(
         typer.echo(f"Label audit failed: {exc}", err=True)
         raise typer.Exit(5) from exc
     typer.echo(json.dumps(report, indent=2))
+
+
+def _gdelt_day_worker(arguments: tuple[str, str, str, str, int]) -> tuple[str, int, int]:
+    from datetime import date as date_type
+
+    from newsvar.ingestion.gdelt import OK, extract_day, read_catalog
+
+    day_text, catalog_path, output_root, catalog_sha256, threads = arguments
+    day = date_type.fromisoformat(day_text)
+    catalog = read_catalog(Path(catalog_path), start=day, end=day)
+    manifest = extract_day(
+        day, catalog, Path(output_root), catalog_sha256=catalog_sha256, threads=threads
+    )
+    batches = manifest["batches"]
+    assert isinstance(batches, list)
+    title_rows = manifest["title_rows"]
+    assert isinstance(title_rows, int)
+    return day_text, sum(batch["status"] == OK for batch in batches), title_rows
+
+
+@gdelt_app.command("extract")
+def gdelt_extract(
+    start: Annotated[str, typer.Option(help="First UTC date, YYYY-MM-DD.")],
+    end: Annotated[str, typer.Option(help="Last UTC date, YYYY-MM-DD.")],
+    catalog_path: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False, help="Saved GDELT master file list.")
+    ] = Path("data/raw/gdelt/masterfilelist.txt"),
+    output_root: Annotated[Path, typer.Option(help="Committed per-day title store.")] = Path(
+        "data/raw/gdelt/titles"
+    ),
+    processes: Annotated[int, typer.Option(min=1, max=16)] = 4,
+    threads: Annotated[int, typer.Option(min=1, max=16)] = 8,
+    max_seconds: Annotated[
+        int, typer.Option(min=0, help="Stop starting new days after this budget; 0 is unbounded.")
+    ] = 0,
+) -> None:
+    """Stream catalogued GKG batches, keep relevance-matched titles, and commit per UTC day."""
+    import hashlib
+    import time
+    from datetime import date as date_type
+    from multiprocessing import Pool
+
+    from newsvar.ingestion.gdelt import day_is_final, iter_days, load_day
+
+    first, last = date_type.fromisoformat(start), date_type.fromisoformat(end)
+    with catalog_path.open("rb") as stream:
+        catalog_sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
+    pending = []
+    for day in iter_days(first, last):
+        manifest = load_day(output_root, day)
+        if manifest is None or not day_is_final(manifest):
+            pending.append(day)
+    typer.echo(f"pending_days={len(pending)} catalog_sha256={catalog_sha256}")
+    started, done = time.monotonic(), 0
+    jobs = (
+        (day.isoformat(), str(catalog_path), str(output_root), catalog_sha256, threads)
+        for day in pending
+        if not max_seconds or time.monotonic() - started < max_seconds
+    )
+    with Pool(processes=processes) as pool:
+        for day_text, ok_batches, title_rows in pool.imap(_gdelt_day_worker, jobs):
+            done += 1
+            typer.echo(
+                f"{day_text} ok_batches={ok_batches} titles={title_rows} "
+                f"done={done}/{len(pending)} elapsed={time.monotonic() - started:.0f}s"
+            )
+    typer.echo(f"finished days={done} remaining={len(pending) - done}")
+
+
+@news_app.command("corpus")
+def news_corpus(
+    start: Annotated[str, typer.Option(help="First UTC date, YYYY-MM-DD.")],
+    end: Annotated[str, typer.Option(help="Last UTC date, YYYY-MM-DD.")],
+    title_root: Annotated[Path, typer.Option()] = Path("data/raw/gdelt/titles"),
+    output_root: Annotated[Path, typer.Option()] = Path("data/derived/news"),
+) -> None:
+    """Normalize, filter and chronologically deduplicate committed GDELT days."""
+    from datetime import date as date_type
+
+    from newsvar.news import build_corpus
+
+    path, manifest = build_corpus(
+        title_root,
+        output_root,
+        start=date_type.fromisoformat(start),
+        end=date_type.fromisoformat(end),
+    )
+    typer.echo(json.dumps({"path": str(path), **manifest}, indent=2))
+
+
+def _sampling_rate(unique_titles: int, cap: int) -> float:
+    import math
+
+    return 1.0 if unique_titles <= cap else math.floor(cap / unique_titles * 100) / 100
+
+
+@news_app.command("score")
+def news_score(
+    corpus: Annotated[Path, typer.Option(exists=True, file_okay=False)],
+    model_snapshot: Annotated[Path, typer.Option(exists=True, file_okay=False)],
+    scores_root: Annotated[Path, typer.Option()] = Path("data/derived/scores"),
+    title_cap: Annotated[int, typer.Option(min=1)] = 1_000_000,
+    batch_size: Annotated[int, typer.Option(min=1, max=256)] = 32,
+    threads: Annotated[int, typer.Option(min=1, max=16)] = 4,
+    max_seconds: Annotated[int, typer.Option(min=0)] = 0,
+    project_root: Annotated[
+        Path, typer.Option(exists=True, file_okay=False, resolve_path=True)
+    ] = Path("."),
+) -> None:
+    """Score the frozen content-hash sample of unique titles with the pinned FinBERT."""
+    import time
+
+    preflight = collect_snapshot(project_root)
+    if not evaluate(preflight, Stage.SENTIMENT).ready:
+        typer.echo("Scoring paused: sentiment resource preflight did not pass.", err=True)
+        raise typer.Exit(3)
+    import pyarrow.parquet as pq
+    import torch
+
+    from newsvar.news import load_corpus, sample_key, sample_threshold
+    from newsvar.scoring import score_titles
+    from newsvar.sentiment import FinbertEncoder
+
+    manifest = load_corpus(corpus)
+    unique = manifest["unique_retained_titles"]
+    assert isinstance(unique, int)
+    rate = _sampling_rate(unique, title_cap)
+    threshold = sample_threshold(rate)
+    table = pq.read_table(corpus / "titles.parquet", columns=["content_sha256", "title_clean"])
+    titles = [
+        (digest, text)
+        for digest, text in zip(
+            table.column(0).to_pylist(), table.column(1).to_pylist(), strict=True
+        )
+        if sample_key(digest) < threshold
+    ]
+    torch.set_num_threads(threads)
+    encoder = FinbertEncoder.load_local(model_snapshot)
+    started = time.monotonic()
+
+    def progress(done: int, total: int) -> None:
+        elapsed = time.monotonic() - started
+        typer.echo(f"scored={done}/{total} elapsed={elapsed:.0f}s rate={done / elapsed:.1f}/s")
+        sys.stdout.flush()
+
+    counts = score_titles(
+        titles,
+        root=scores_root,
+        fingerprint=encoder.fingerprint,
+        score_batch=encoder.score_batch,
+        batch_size=batch_size,
+        progress=progress,
+        should_stop=(lambda: time.monotonic() - started > max_seconds) if max_seconds else None,
+    )
+    typer.echo(
+        json.dumps(
+            {
+                "unique_retained_titles": unique,
+                "sampling_rate": rate,
+                "designated_titles": len(titles),
+                "fingerprint": encoder.fingerprint.__dict__,
+                "fingerprint_id": encoder.fingerprint.identity,
+                **counts,
+                "seconds": round(time.monotonic() - started, 1),
+            },
+            indent=2,
+        )
+    )
+
+
+def _study_inputs(config: Path):  # type: ignore[no-untyped-def]
+    from datetime import date as date_type
+
+    from newsvar.sentiment import MODEL_REVISION, model_fingerprint
+    from newsvar.study import StudyInputs
+
+    settings = json.loads(config.read_text(encoding="utf-8"))
+    snapshot = Path(settings["model_snapshot"])
+    if snapshot.name != MODEL_REVISION:
+        raise typer.BadParameter("Model snapshot is not the pinned FinBERT revision.")
+    return StudyInputs(
+        market_dataset=Path(settings["market_dataset"]),
+        calendar_path=Path(settings["calendar_path"]),
+        corpus=Path(settings["corpus"]),
+        corpus_start=date_type.fromisoformat(settings["corpus_start"]),
+        scores_root=Path(settings["scores_root"]),
+        fingerprint=model_fingerprint(snapshot),
+        sampling_rate=float(settings["sampling_rate"]),
+        feature_root=Path(settings["feature_root"]),
+    ), date_type.fromisoformat(settings["study_end"])
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+
+
+CONFIG_OPTION = typer.Option(exists=True, dir_okay=False, help="Study input paths JSON.")
+
+
+@study_app.command("admit")
+def study_admit(
+    output: Annotated[Path, typer.Option(help="Admission record JSON to write.")],
+    config: Annotated[Path, CONFIG_OPTION] = Path("data/study.json"),
+) -> None:
+    """Write the outcome-blind continuity, sample-size and split record."""
+    from newsvar.study import admission
+
+    inputs, study_end = _study_inputs(config)
+    record = admission(inputs, study_end=study_end)
+    _write_json(output, record)
+    typer.echo(json.dumps({k: record[k] for k in ("criteria", "split")}, indent=2))
+
+
+@study_app.command("develop")
+def study_develop(
+    admission_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Development record JSON to write.")],
+    config: Annotated[Path, CONFIG_OPTION] = Path("data/study.json"),
+    trees: Annotated[bool, typer.Option(help="Include the small tree challenger.")] = True,
+) -> None:
+    """Run the declared development search and sensitivities; never opens the test range."""
+    from newsvar.study import develop
+
+    inputs, _ = _study_inputs(config)
+    split = json.loads(admission_record.read_text(encoding="utf-8"))["split"]
+    record = develop(inputs, split, with_trees=trees)
+    _write_json(output, record)
+    typer.echo(
+        json.dumps(
+            {
+                "selected_linear_penalty": record["selected_linear_penalty"],
+                "strongest_baseline": record["strongest_baseline"],
+                "development_eligible_forecasts": record["development_eligible_forecasts"],
+            },
+            indent=2,
+        )
+    )
+
+
+@study_app.command("preregister")
+def study_preregister(
+    admission_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    development_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Preregistration JSON to write.")],
+    lock_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)] = Path("uv.lock"),
+) -> None:
+    """Freeze the final protocol. Requires a clean committed source tree."""
+    import subprocess
+
+    from newsvar.study import file_sha256, preregistration
+
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain", "--", "src", "pyproject.toml", "uv.lock"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if dirty:
+        typer.echo("Commit source changes before preregistering.", err=True)
+        raise typer.Exit(4)
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    record = preregistration(
+        development_record,
+        code_commit=commit,
+        lock_sha256=file_sha256(lock_file),
+        admission_path=admission_record,
+    )
+    _write_json(output, record)
+    typer.echo(json.dumps({"preregistration_id": record["preregistration_id"]}, indent=2))
+
+
+@study_app.command("evaluate")
+def study_evaluate(
+    registration: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Final evaluation JSON to write.")],
+    config: Annotated[Path, CONFIG_OPTION] = Path("data/study.json"),
+) -> None:
+    """Open the locked test range once, exactly as preregistered."""
+    from newsvar.study import evaluate as run_final
+
+    if output.exists():
+        typer.echo("A final evaluation already exists; it is not overwritten.", err=True)
+        raise typer.Exit(4)
+    inputs, _ = _study_inputs(config)
+    record = run_final(inputs, json.loads(registration.read_text(encoding="utf-8")))
+    _write_json(output, record)
+    typer.echo(json.dumps(record["primary_decision"], indent=2))

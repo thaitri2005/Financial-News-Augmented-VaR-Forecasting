@@ -48,3 +48,21 @@ def test_news_features_use_fixed_lookbacks_and_label_id_tie_rule() -> None:
     assert result.values["sentiment_shock21"] == pytest.approx(0.0)
     with pytest.raises(FeatureInputError):
         news_features(current, preceding[:62])
+
+
+def test_sampled_window_scales_intensity_and_measures_coverage_on_designated() -> None:
+    from newsvar.features import FeatureInputError, HeadlineScore, NewsWindow, news_features
+
+    score = HeadlineScore(0.1, 0.6, 0.3)
+    history = [NewsWindow(24.0, True, 10, (score,) * 10) for _ in range(63)]
+    full = NewsWindow(24.0, True, 100, (score,) * 100)
+    sampled = NewsWindow(24.0, True, 100, (score,) * 25, designated_count=25, sampling_rate=0.25)
+    a, b = news_features(full, history), news_features(sampled, history)
+    assert b.scoring_coverage == 1.0 and b.retained_count == 100 and b.scored_count == 25
+    assert a.values["news_log_rate"] == b.values["news_log_rate"]
+    assert a.values["negative_log_intensity"] == pytest.approx(b.values["negative_log_intensity"])
+    assert a.values["sentiment_mean"] == pytest.approx(b.values["sentiment_mean"])
+    with pytest.raises(FeatureInputError):
+        NewsWindow(24.0, True, 100, (score,) * 30, designated_count=25, sampling_rate=0.25)
+    with pytest.raises(FeatureInputError):
+        NewsWindow(24.0, True, 100, (score,) * 25, sampling_rate=0.25)

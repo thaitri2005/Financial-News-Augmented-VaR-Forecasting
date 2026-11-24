@@ -125,3 +125,105 @@ def transition_counts(
         counts[f"n{int(previous)}{int(current)}"] += 1
         counts["eligible_pairs"] += 1
     return counts
+
+
+def _xlogy(count: float, probability: float) -> float:
+    """``count * log(probability)`` with the 0*log(0) = 0 convention."""
+    return 0.0 if count == 0 else count * math.log(probability)
+
+
+def kupiec_test(breaches: int, forecasts: int, alpha: float) -> dict[str, object]:
+    """Unconditional-coverage likelihood ratio; no pseudo-counts for empty cells."""
+    if forecasts < 1 or not 0 <= breaches <= forecasts or not 0.0 < alpha < 1.0:
+        raise MetricInputError("Kupiec inputs are outside their domain.")
+    from scipy.stats import chi2
+
+    observed = breaches / forecasts
+    null = _xlogy(breaches, alpha) + _xlogy(forecasts - breaches, 1.0 - alpha)
+    alternative = _xlogy(breaches, observed) + _xlogy(forecasts - breaches, 1.0 - observed)
+    statistic = max(0.0, -2.0 * (null - alternative))
+    return {"statistic": statistic, "p_value": float(chi2.sf(statistic, 1))}
+
+
+def christoffersen_test(counts: Mapping[str, int], alpha: float) -> dict[str, object]:
+    """Independence and conditional-coverage diagnostics from adjacent-session transitions."""
+    n00, n01, n10, n11 = (counts[key] for key in ("n00", "n01", "n10", "n11"))
+    total = n00 + n01 + n10 + n11
+    if total == 0 or n00 + n01 == 0 or n10 + n11 == 0:
+        return {"status": "not_estimable", "transitions": dict(counts)}
+    from scipy.stats import chi2
+
+    pi01, pi11 = n01 / (n00 + n01), n11 / (n10 + n11)
+    pooled = (n01 + n11) / total
+    restricted = _xlogy(n00 + n10, 1.0 - pooled) + _xlogy(n01 + n11, pooled)
+    unrestricted = (
+        _xlogy(n00, 1.0 - pi01) + _xlogy(n01, pi01) + _xlogy(n10, 1.0 - pi11) + _xlogy(n11, pi11)
+    )
+    independence = max(0.0, -2.0 * (restricted - unrestricted))
+    coverage = _xlogy(n00 + n10, 1.0 - alpha) + _xlogy(n01 + n11, alpha)
+    conditional = max(0.0, -2.0 * (coverage - unrestricted))
+    return {
+        "status": "estimated",
+        "transitions": dict(counts),
+        "independence_statistic": independence,
+        "independence_p_value": float(chi2.sf(independence, 1)),
+        "conditional_coverage_statistic": conditional,
+        "conditional_coverage_p_value": float(chi2.sf(conditional, 2)),
+    }
+
+
+def max_breach_run(rows: Sequence[QuantileObservation], *, calendar: CalendarSnapshot) -> int:
+    """Longest run of breaches over adjacent saved sessions; a gap ends the run."""
+    hits = {row.target_end_session: breach(row.return_simple, row.q_return) for row in rows}
+    previous = {origin.session: origin.previous_session for origin in calendar.origins}
+    longest = current = 0
+    last: date | None = None
+    for session in sorted(hits):
+        if not hits[session]:
+            current, last = 0, session
+            continue
+        current = current + 1 if last is not None and previous.get(session) == last else 1
+        longest, last = max(longest, current), session
+    return longest
+
+
+def block_bootstrap_mean(
+    differences: Sequence[float | None],
+    *,
+    block_length: int = 20,
+    replications: int = 2_000,
+    seed: int = 1729,
+) -> dict[str, object]:
+    """Moving-block bootstrap of a paired score difference on the full origin grid.
+
+    ``differences`` follows the full session grid; ``None`` marks an origin without
+    a valid pair. Blocks are drawn on the grid so gaps stay where they occurred,
+    and each resample averages only its valid entries.
+    """
+    values = np.asarray([np.nan if item is None else float(item) for item in differences])
+    size = len(values)
+    if size < block_length or block_length < 1 or replications < 1:
+        raise MetricInputError("Block bootstrap needs a grid at least one block long.")
+    if not np.isfinite(values).any():
+        raise MetricInputError("Block bootstrap needs at least one valid paired score.")
+    generator = np.random.default_rng(seed)
+    blocks = math.ceil(size / block_length)
+    offsets = np.arange(block_length)
+    means = np.empty(replications)
+    for replication in range(replications):
+        starts = generator.integers(0, size - block_length + 1, size=blocks)
+        sample = values[(starts[:, None] + offsets[None, :]).ravel()[:size]]
+        valid = sample[np.isfinite(sample)]
+        means[replication] = np.nan if valid.size == 0 else float(valid.mean())
+    usable = means[np.isfinite(means)]
+    low, high = np.quantile(usable, [0.025, 0.975])
+    return {
+        "mean": float(np.nanmean(values)),
+        "valid_pairs": int(np.isfinite(values).sum()),
+        "grid_size": size,
+        "block_length": block_length,
+        "replications": replications,
+        "seed": seed,
+        "interval_95": (float(low), float(high)),
+        "share_positive": float((usable > 0).mean()),
+    }

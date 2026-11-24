@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cached_property
 
 import numpy as np
 
@@ -40,23 +41,34 @@ class NewsWindow:
     feed_complete: bool
     retained_count: int
     scored: tuple[HeadlineScore, ...]
+    designated_count: int | None = None
+    sampling_rate: float = 1.0
 
     def __post_init__(self) -> None:
         invalid_duration = not math.isfinite(self.duration_hours) or self.duration_hours <= 0.0
         if invalid_duration or self.retained_count < 0:
             raise FeatureInputError("News window duration/count is invalid.")
-        if len(self.scored) > self.retained_count:
-            raise FeatureInputError("Scored headlines cannot exceed retained headlines.")
+        if not 0.0 < self.sampling_rate <= 1.0:
+            raise FeatureInputError("Scoring sample rate must lie in (0, 1].")
+        if self.designated_count is None and self.sampling_rate != 1.0:
+            raise FeatureInputError("A sampled window must declare its designated count.")
+        if not len(self.scored) <= self.designated <= self.retained_count:
+            raise FeatureInputError("Scored <= designated <= retained headline counts required.")
+
+    @property
+    def designated(self) -> int:
+        """Retained headlines designated for scoring; all of them unless a sample is declared."""
+        return self.retained_count if self.designated_count is None else self.designated_count
 
     @property
     def scoring_coverage(self) -> float:
-        return 1.0 if self.retained_count == 0 else len(self.scored) / self.retained_count
+        return 1.0 if self.designated == 0 else len(self.scored) / self.designated
 
     @property
     def rate(self) -> float:
         return 24.0 * self.retained_count / self.duration_hours
 
-    @property
+    @cached_property
     def sentiment_mean(self) -> float | None:
         return float(np.mean([item.signed for item in self.scored])) if self.scored else None
 
@@ -141,7 +153,10 @@ def news_features(current: NewsWindow, preceding: Sequence[NewsWindow]) -> Featu
             np.mean([item.is_negative_label for item in current.scored])
         )
         values["negative_log_intensity"] = math.log1p(
-            24.0 / current.duration_hours * sum(item.negative for item in current.scored)
+            24.0
+            / current.duration_hours
+            * sum(item.negative for item in current.scored)
+            / current.sampling_rate
         )
         prior_means = [
             item.sentiment_mean
