@@ -957,7 +957,9 @@ def evaluate(
                                 "session": session,
                                 "ret": by_session[session][f"ret_{contract}"],
                                 "var": by_session[session][f"var_{contract}"],
-                                **{k: v for k, v in record.items()},
+                                "text_alpha": None,
+                                "text_stacking": None,
+                                **record,
                             }
                         )
     return {
