@@ -637,7 +637,26 @@ def preregistration(
     return {"preregistration_id": sha256(canonical_json(body)), **body}
 
 
-def evaluate(inputs: StudyInputs, registration: Mapping[str, Any]) -> dict[str, Any]:
+def _ledger_rows(
+    model: str, tail: float, rows: Mapping[date, QuantileObservation]
+) -> list[dict[str, object]]:
+    return [
+        {
+            "model_id": model,
+            "tail": tail,
+            "target_end_session": session,
+            "q_return": row.q_return,
+            "return_simple": row.return_simple,
+        }
+        for session, row in sorted(rows.items())
+    ]
+
+
+def evaluate(
+    inputs: StudyInputs,
+    registration: Mapping[str, Any],
+    ledger: list[dict[str, object]] | None = None,
+) -> dict[str, Any]:
     """Execute the frozen protocol on the test range exactly as preregistered."""
     body = {key: value for key, value in registration.items() if key != "preregistration_id"}
     if sha256(canonical_json(body)) != registration["preregistration_id"]:
@@ -721,6 +740,12 @@ def evaluate(inputs: StudyInputs, registration: Mapping[str, Any]) -> dict[str, 
                 for model_id in ex.BASELINE_IDS
             },
         }
+    if ledger is not None:
+        for key, models in linear.items():
+            for group, observed in models.items():
+                ledger.extend(_ledger_rows(group, float(key), observed))
+            for model_id, observed in baselines[key].items():
+                ledger.extend(_ledger_rows(model_id, float(key), observed))
     primary = comparisons[f"{PRIMARY_TAIL:g}"]["Q2_vs_Q1"]  # type: ignore[index]
     interval = primary["bootstrap"]["block_20"]["interval_95"]
     supported = primary["mean_improvement"] > 0 and interval[0] > 0

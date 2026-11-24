@@ -577,6 +577,9 @@ def study_evaluate(
     registration: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
     output: Annotated[Path, typer.Option(help="Final evaluation JSON to write.")],
     config: Annotated[Path, CONFIG_OPTION] = Path("data/study.json"),
+    ledger: Annotated[Path, typer.Option(help="Private per-date forecast ledger.")] = Path(
+        "data/derived/study/final_forecasts.parquet"
+    ),
 ) -> None:
     """Open the locked test range once, exactly as preregistered."""
     from newsvar.study import evaluate as run_final
@@ -584,7 +587,36 @@ def study_evaluate(
     if output.exists():
         typer.echo("A final evaluation already exists; it is not overwritten.", err=True)
         raise typer.Exit(4)
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
     inputs, _ = _study_inputs(config)
-    record = run_final(inputs, json.loads(registration.read_text(encoding="utf-8")))
+    rows: list[dict[str, object]] = []
+    record = run_final(inputs, json.loads(registration.read_text(encoding="utf-8")), rows)
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.Table.from_pylist(rows), ledger)
     _write_json(output, record)
     typer.echo(json.dumps(record["primary_decision"], indent=2))
+
+
+@study_app.command("report")
+def study_report(
+    admission_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    development_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    final_record: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    ledger: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option(help="Markdown results tables to write.")],
+    figure_dir: Annotated[Path, typer.Option()] = Path("docs/figures"),
+) -> None:
+    """Rebuild result tables and figures from saved records; fits nothing."""
+    from newsvar.report import write_report
+
+    write_report(
+        admission=json.loads(admission_record.read_text(encoding="utf-8")),
+        development=json.loads(development_record.read_text(encoding="utf-8")),
+        final=json.loads(final_record.read_text(encoding="utf-8")),
+        ledger=ledger,
+        output=output,
+        figure_dir=figure_dir,
+    )
+    typer.echo(str(output))

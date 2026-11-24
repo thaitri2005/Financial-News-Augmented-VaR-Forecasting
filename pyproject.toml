@@ -33,6 +33,9 @@ ml = [
 modeling = [
     "scikit-learn==1.6.1",
 ]
+report = [
+    "matplotlib>=3.9,<4",
+]
 risk = [
     "arch==7.2.0",
     "pandas==2.2.3",
@@ -65,7 +68,7 @@ files = ["src/newsvar"]
 strict = true
 
 [[tool.mypy.overrides]]
- module = ["exchange_calendars", "exchange_calendars.*", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "joblib", "pandas", "pandas.*"]
+ module = ["exchange_calendars", "exchange_calendars.*", "pyarrow", "pyarrow.*", "scipy", "scipy.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "joblib", "pandas", "pandas.*", "matplotlib", "matplotlib.*"]
 ignore_missing_imports = true
 
 [tool.uv]
