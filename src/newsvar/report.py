@@ -147,8 +147,9 @@ def figures(ledger: Path, figure_dir: Path) -> dict[str, Path]:
         "Locked test: 5% return quantile forecasts and realized S&P 500 returns",
         loc="left",
         fontsize=12,
+        pad=28,
     )
-    axis.legend(frameon=False, ncols=4, loc="lower left", fontsize=9)
+    axis.legend(frameon=False, ncols=4, loc="lower left", bbox_to_anchor=(0.0, 1.0), fontsize=9)
     figure.tight_layout()
     forecast_path = figure_dir / "final_quantiles_and_breaches.png"
     figure.savefig(forecast_path, dpi=160)
