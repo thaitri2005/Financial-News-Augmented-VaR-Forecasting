@@ -117,6 +117,13 @@ def figures(ledger: Path, figure_dir: Path) -> dict[str, Path]:
     returns = np.asarray([series["Q2"][day][1] for day in common]) * 100
     q1 = np.asarray([series["Q1"][day][0] for day in common]) * 100
     q2 = np.asarray([series["Q2"][day][0] for day in common]) * 100
+    # Break the forecast lines where sessions are missing, so a feed gap is not drawn as data.
+    gaps = [i for i in range(1, len(common)) if (common[i] - common[i - 1]).days > 7]
+    line_days = np.asarray(common, dtype="datetime64[D]").astype(object)
+    q1_line, q2_line = q1.astype(float).copy(), q2.astype(float).copy()
+    for index in gaps:
+        q1_line[index] = np.nan
+        q2_line[index] = np.nan
     plt.rcParams.update({"font.size": 10, "axes.edgecolor": GRID, "text.color": INK})
 
     def style(axis: Any) -> None:
@@ -129,8 +136,8 @@ def figures(ledger: Path, figure_dir: Path) -> dict[str, Path]:
     figure, axis = plt.subplots(figsize=(11, 4.6), facecolor=SURFACE)
     style(axis)
     axis.vlines(common, 0, returns, color="#b9b8b2", linewidth=0.8, label="Realized return")
-    axis.plot(common, q1, color=BLUE, linewidth=1.6, label="Q1: market + news counts")
-    axis.plot(common, q2, color=ORANGE, linewidth=1.6, label="Q2: + sentiment")
+    axis.plot(line_days, q1_line, color=BLUE, linewidth=1.6, label="Q1: market + news counts")
+    axis.plot(line_days, q2_line, color=ORANGE, linewidth=1.6, label="Q2: + sentiment")
     hits = returns < q2
     axis.scatter(
         np.asarray(common)[hits],

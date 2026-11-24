@@ -1,6 +1,6 @@
 # Agent development and delivery plan
 
-**Version:** 1.2 · **Created:** 2026-09-15 · **Updated:** 2026-09-16 · **Scope:** implement the accepted blueprint incrementally.
+**Version:** 2.0 · **Created:** 2026-09-15 · **Updated:** 2026-11-24 · **Scope:** implement the accepted blueprint incrementally.
 
 **Start here on resumption:** [PROJECT_STATUS.md](PROJECT_STATUS.md). **Scientific authority:** [PROJECT_BLUEPRINT.md](PROJECT_BLUEPRINT.md). **Mandatory agent workflow:** [AGENTS.md](AGENTS.md).
 
@@ -298,6 +298,8 @@ Summarize what now works, what was verified, which milestone/task advanced, mate
 
 **Next ready work:** M0-05 passed its bounded local NLP benchmark using engineering-only Yahoo titles; it does not admit that corpus for predictive research. The bounded complete-news-feed admission pilot still awaits access. M2-01 may now begin after the M1/M0 cross-document review. Do not block market-data foundation work on Alpaca credentials.
 
+**State on 2026-11-24:** M0–M5 are complete under three recorded changes (CHG-001 streaming GDELT extraction, CHG-002 reduced-study split, CHG-003 sampled sentiment scoring). M6 is closed as research-only: M6-01 deferred, M6-03 cancelled for v1, M6-04 done. The M0-04 BigQuery and Alpaca pilots were never executed and remain optional follow-up studies. The stage commands and their gates are in the [news study contract](docs/development/m1_m5_news_study_contract.md).
+
 The detailed next queue and actual progress belong in `PROJECT_STATUS.md`, not in this static plan.
 
 ## 8. Plan revision history
@@ -314,3 +316,4 @@ The detailed next queue and actual progress belong in `PROJECT_STATUS.md`, not i
 | 1.7 | 2026-09-16 | Added M3-03's synthetic causal M/C/S feature functions and adversarial quality/window fixtures; real feature materialization remains source-gated |
 | 1.8 | 2026-09-16 | Added M4-01's pinned training-only linear quantile adapter, preprocessing persistence and synthetic future-schema fixtures; all data-dependent experiments remain gated |
 | 1.9 | 2026-09-16 | Added M4-02's fixed 36-run preferred and 18-run GDELT-alternative linear manifests; M3/M4 data-dependent tasks remain gated on source admission |
+| 2.0 | 2026-11-24 | Resumed in a cloud container; completed source admission by streaming GDELT, the sentiment dataset, development search, preregistration and the locked evaluation; closed M6 as research-only; recorded CHG-001–003 |

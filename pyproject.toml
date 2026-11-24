@@ -73,6 +73,7 @@ ignore_missing_imports = true
 
 [tool.uv]
 cache-dir = ".cache/uv"
+default-groups = ["dev", "ml", "modeling", "risk", "report"]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }

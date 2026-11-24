@@ -71,8 +71,9 @@ Split, fixed from eligibility counts only:
   training    691 usable rows, target end 2019-12-24 – 2022-12-12
   development 250 usable rows, target end 2022-12-13 – 2023-12-13
   final test  500 usable rows, target end 2023-12-14 – 2025-12-31
-Affects: blueprint §6.2, §16.1; M4-02 (one development fold, 18 linear + 24 tree runs);
-  search-plan design "reduced_study".
+Affects: blueprint §6.2, §16.1; M4-02 (one development fold, 18 linear + 24 tree runs).
+  The study runner enumerates these runs itself; the data-unbound manifests in
+  search_plan.py (preferred and GDELT alternative) were not extended.
 Invalidated artifacts: none. No M2 score for 2023–2025 was ever computed or published, so
   moving 2023 into development reuses no inspected outcome.
 ```

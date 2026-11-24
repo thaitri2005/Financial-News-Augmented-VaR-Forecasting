@@ -2,13 +2,13 @@
 
 ## Project source of truth
 
-**Version:** 1.1 · **Research date:** 15 September 2026 · **Status:** architecture baseline; data feasibility gate still open; core implementation started.
+**Version:** 2.6 · **Research date:** 15 September 2026 · **Last updated:** 24 November 2026 · **Status:** first release complete as a research deliverable. GDELT titles were admitted for a qualified, reduced-power historical-proxy study; the locked test was evaluated once and found no reliable improvement from news sentiment. See section 26.
 
 **Companion documents:** the [development plan](DEVELOPMENT_PLAN.md) adds agent execution stages and review requirements; [project status](PROJECT_STATUS.md) records actual progress. This blueprint remains the source of truth for system design and scientific decisions. The plan does not replace it.
 
-**Owner:** project lead/developer. **Operating constraint:** this Windows laptop; free data first; at most 8 GB RAM for project work. **Deliverable:** a reproducible research dataset, defensible out-of-sample risk evaluation, and a small local batch system.
+**Owner:** project lead/developer. **Operating constraint:** originally a Windows laptop; the November 2026 work ran in a 4-CPU, 15 GiB cloud Linux container. Free data first; at most 8 GB RAM for project work. **Deliverable:** a reproducible research dataset, defensible out-of-sample risk evaluation, and a small local batch system.
 
-This document governs scope, definitions, data admission, implementation, experiments, acceptance criteria, and changes. Completed work includes public-source research, retained market/GDELT samples, a streaming audit of seven academic news files, an [executed feasibility notebook](notebooks/00_environment_and_sources.ipynb), versioned market/label persistence, and a bounded local FinBERT benchmark. The forecasting system, full source admission, sentiment feature pipeline, and predictive experiments remain to be implemented. Section 24 distinguishes delivered evidence from future work.
+This document governs scope, definitions, data admission, implementation, experiments, acceptance criteria, and changes. Completed work includes public-source research, retained market/GDELT samples, a streaming audit of seven academic news files, an [executed feasibility notebook](notebooks/00_environment_and_sources.ipynb), versioned market/label persistence, and a bounded local FinBERT benchmark. As of 24 November 2026 the source admission, sentiment feature pipeline, development experiments and preregistered final evaluation are also complete; section 26 records what was done and how it deviated from the original plan. Sections 1–25 are kept as the specification and its dated evidence; where section 26 differs, section 26 describes what actually happened.
 
 **How to interpret decisions:** `Accepted` means implement as specified. `Conditional` means the default is chosen, but a named empirical/access gate must pass. `Deferred` means outside the first release. Unknown data properties are not treated as facts. Closing a gate requires evidence, not changing its status by assertion.
 
@@ -235,6 +235,8 @@ The GKG record ID encodes a 15-minute batch. The codebook describes `V2.1DATE` a
 
 A full local GKG archive is rejected. At the mean compressed size of our five batches, six years would imply about **1.86 TiB** of transfer. That is an illustrative scenario, not a representative archive estimate; it is enough to reject blind bulk download on this laptop. A bounded September 2026 public catalog check independently listed all 96 quarter-hour batches for each of 2020-03-16 and 2022-06-13, at 759.2 MB and 494.8 MB compressed respectively; it supports the same local-storage decision but does not establish title eligibility. The [dated catalog evidence](docs/research/gdelt_catalog_pilot_20260916.json) retained 26 capped ranges (1.70 MB total), never the 127.7 MB mutable master list. Sampled rows/files cannot be substituted for complete daily news counts.
 
+**Superseded for extraction on 2026-11-24 (CHG-001):** the rejection above concerns *storing* a local archive on the laptop. In the cloud container every catalogued batch for 2019-09-01–2025-12-31 was streamed, verified against the catalog size and MD5, filtered and discarded: 1.128 TiB transferred in about 2 h 50 min, about 1.1 GiB kept. The BigQuery spike below was never run. See section 26.
+
 Next extraction spike: at most two focused hours to use the prepared [schema query](docs/research/gdelt_bigquery_schema.sql) and [one-day count-only dry-run query](docs/research/gdelt_bigquery_day_summary.sql) against the partitioned public table `gdelt-bq.gdeltv2.gkg_partitioned`. First audit the current schema, then use explicit `_PARTITIONTIME` bounds, a `DATE` parameter and only required columns. Each first-pilot dry run and execution has a 10 GiB maximum-byte cap; do not execute a query whose dry-run estimate exceeds it. The [pilot contract](docs/development/m0_gdelt_pilot_contract.md) predeclares 2020-03-16 and 2022-06-13 and the evidence to retain. Filter relevance using development-inspected economic themes and documented publisher rules only after that count/metadata gate; a filter after scanning does not necessarily reduce bytes charged. A later title export must retain original title, document URL, batch/record identifiers, source, translation metadata, theme and tone fields, with HTML decoding local. An initial candidate filter uses whole theme codes `ECON_STOCKMARKET`, `ECON_INTEREST_RATES`, `ECON_INFLATION`, and `ECON_CENTRALBANK`; verify actual tag meanings/coverage and U.S. relevance before freezing it. These are candidates, not an already admitted universe.
 
 Use BigQuery's no-billing sandbox only if access is available, with dry runs and `maximum_bytes_billed`. The documented sandbox includes 1 TiB monthly query processing, 10 GiB storage, and 60-day expiration; it is not durable project storage. Local project limits: 10 GiB estimated scan for the first executed pilot, 100 MiB downloaded results initially, and an 800 GiB total monthly scan plan leaving headroom under the shared free allowance. If the full extraction cannot fit the free budget/timebox, stop this route; do not enable billing or present domain filtering as a cost guarantee. No cloud account creation or query has been performed. [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox), [cost controls](https://docs.cloud.google.com/bigquery/docs/best-practices-costs).
@@ -284,7 +286,7 @@ These are file-wide diagnostics from our [streaming inspection](docs/research/ya
 ### 5.9 Binding source-selection rule
 
 1. Preserve the audited public files and finish source/calendar engineering with them.
-2. Give GDELT the bounded extraction spike above. Admit it if complete daily windows, stable relevance, archival semantics, and a zero-cost extraction plan pass; use the explicit 2020–2025 protocol in section 16.
+2. Give GDELT the bounded extraction spike above. Admit it if complete daily windows, stable relevance, archival semantics, and a zero-cost extraction plan pass; use the explicit 2020–2025 protocol in section 16. *Outcome 2026-11-24: admitted with a documented 2020 continuity exception under the reduced-study rule; step 3 was not needed and no Alpaca pilot was run.*
 3. If GDELT cannot satisfy that gate, use the user's offered **free Alpaca account** for a small news-entitlement pilot. If it passes, use Alpaca as the operational source and the preferred longer-history protocol. If both sources pass, prefer Alpaca for the first local daily system unless the pilot reveals worse temporal/version integrity; record that evidence-based override before model evaluation.
 4. If neither passes within the five-day gate, finish market-only VaR and the public-data prototype. A GDELT tone-only study needs its own successful extraction/coverage gate.
 
@@ -972,6 +974,8 @@ Acquire enough pre-2017 news to initialize the count/sentiment rolling features 
 
 **GDELT-title alternative, frozen by source quality rather than outcomes:** use late-2019 titles for news warmup, 2020–2021 for initial training, 2022 for one development fold, and the same 2023–2025 final test. The market snapshot supplies 505/251/752 observations respectively before exclusions. This leaves much less initial text-training data; admit only if at least 500 usable training rows and the other section 6 thresholds survive. Otherwise extend the development design using the reduced-study rule or classify it as a prototype; do not lower the sample gate silently. The December 2020 encoder predates the 2022 development/test origins. Market-state warmup may still start in 2016; the text corpus starts later. This protocol has 18 linear and at most 24 tree fold/config runs because it has one development fold. No news-source blend is permitted in the primary feature series.
 
+**Applied outcome (CHG-002, 2026-11-24):** only 454 usable rows had a target end by 2021-12-31, so the 500-row condition failed and the reduced-study rule of section 6.2 was applied to the 1,441 usable rows: training 691 (target end 2019-12-24–2022-12-12), development 250 (2022-12-13–2023-12-13), final test 500 (2023-12-14–2025-12-31). No 2023–2025 score had been computed before this split was fixed.
+
 ### 16.2 Walk-forward mechanics
 
 1. Iterate origins on the saved exchange calendar.
@@ -1636,3 +1640,49 @@ Sources below were checked during research on 15 September 2026. API entitlement
 | 2.3 | 2026-09-16 | Recorded synthetic M/C/S feature-builder implementation with fixed causal windows and feed-quality semantics; no source-backed feature dataset or predictive result was created |
 | 2.4 | 2026-09-16 | Recorded synthetic training-only linear quantile adapter and pinned modeling environment; no source-backed fit, tuning or evaluation was performed |
 | 2.5 | 2026-09-16 | Recorded immutable preferred/GDELT-alternative linear search manifests and M3/M4 source-gate review; no development experiment was run |
+| 2.6 | 2026-11-24 | Added section 26: streaming GDELT extraction (CHG-001), reduced-study admission with a 2020 continuity exception (CHG-002), frozen 27% sentiment scoring sample (CHG-003), preregistered final evaluation and its negative result; marked superseded routes in sections 5.4, 5.9 and 16.1 |
+
+## 26. First-release outcome and deviations (24 November 2026)
+
+This section records what was built and found. It does not rewrite the rules above; where practice differed, the difference is a named change with its reason. Full evidence is in [the ingestion gate](docs/reviews/2026-11-24-gdelt-stream-ingestion-gate.md), [the admission review](docs/reviews/2026-11-24-news-admission-and-development-gate.md) and [the final review](docs/reviews/2026-11-24-final-evaluation-and-handover.md).
+
+### 26.1 Source and data actually used
+
+| Item | Value |
+|---|---|
+| News source | GDELT GKG 2.0 English feed, page titles; streamed from the public archive, no account |
+| Extraction | 2,314 UTC days; 216,999 batches verified; 5,054 absent from the catalog; 91 catalogued but HTTP 404 |
+| Relevance rule | web collection, untranslated, theme `ECON_STOCKMARKET`, at least one US location, usable title |
+| Deduplication | chronological, same case-folded title or URL within 72 hours |
+| Corpus | 3,794,159 retained events; 3,582,698 unique titles; 2019-09-23–2025-12-31 |
+| Availability | Class B: batch time + 15 minutes |
+| Sentiment | `ProsusAI/finbert` at the pinned December 2020 revision, CPU FP32; 967,729 titles scored |
+| Market data | FRED SP500 and Cboe VIX refetched 2026-11-24; 2,287 sessions from 2016-11-25; 2,286 labels |
+
+### 26.2 Named changes
+
+- **CHG-001 — streaming extraction.** Replaces the BigQuery pilot of section 5.4. Raw payloads are not retained; the dated catalog and a per-batch verification ledger are.
+- **CHG-002 — reduced-study split with a 2020 continuity exception.** 2020 has 84.2% complete news windows, below the 90% per-year default of section 6.2; overall completeness is 95.4%. Incomplete windows are excluded from all rows. No threshold was lowered. Under the strict contiguous-interval reading the sample (1,188 rows) would be prototype grade, so results are labelled reduced-power.
+- **CHG-003 — sampled sentiment scoring.** A frozen content-hash probability sample at rate 0.27 keeps scoring inside the 1,000,000-title cap of section 18.2. Counts use the full feed; `negative_log_intensity` is divided by the rate; coverage is measured on the designated sample.
+- **Window completeness rule.** A window is complete when at least 95% of its expected 15-minute batches were verified. This operational definition was added because section 6.2 did not define completeness for a batch archive.
+- **Per-entry score cache not used at scale.** The JSON cache of section 14.2 remains for small jobs; bulk scoring writes checksum-addressed Parquet parts of 5,000 titles.
+- **Not built:** notebooks 01–08, the DuckDB catalog, INT8 inference, runtime memory monitoring, scheduling and shadow forecasts (section 19.4). M6 closed as research-only.
+
+### 26.3 Result
+
+Preregistration `9a49621af268c5578beec9866ffd02622ef9a421e10a5004ab3dd14aa9c5cd53` was committed before the test was opened.
+
+| Primary comparison, 5% tail, 500 common forecasts | Value |
+|---|---|
+| Q1 mean pinball loss | 11.315 bp |
+| Q2 mean pinball loss | 11.322 bp |
+| Relative gain of Q2 over Q1 | −0.06% |
+| 95% moving-block bootstrap interval (block 20) | [−0.0222, +0.0058] bp |
+| Claim supported under section 17.4 | no |
+
+Outcome class under section 1: **negative research result, qualified by chronology and reduced power.** Secondary findings are exploratory: news counts added 0.22% (interval excludes zero, but the sign was opposite in development); the market-only quantile regression beat GARCH-t by 4.6% with an interval that includes zero; no delay, lag, recap or source sensitivity changed the primary reading. No model is promoted to shadow use.
+
+### 26.4 What this result does and does not establish
+
+It establishes that tone aggregates from this broad, noisy title feed, sampled and scored with a frozen 2020 FinBERT, did not improve a regularized linear 5% VaR forecast for the S&P 500 over 2024–2025. It does not establish that curated financial headlines carry no risk information: the test has 25 expected breaches, the feed is about one-seventh off-topic by an agent-rated audit, and the timing is a proxy. The 2023-12-14–2025-12-31 period is spent for this design; a follow-up with another source or feature set needs a new preregistration and a later or prospective test period.
+
