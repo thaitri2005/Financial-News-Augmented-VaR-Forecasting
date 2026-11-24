@@ -128,3 +128,32 @@ Question: is the text gain just headlines describing that day's market move? The
 The volatility gain survives; the VaR gain shrinks. News text carries volatility information beyond same-day daily market data on development dates, but most of its VaR value in the pre-close contract overlaps with what same-day VIX would give.
 
 Everything tried on development data is listed in this log. The design was chosen there, so development figures are optimistic.
+
+## 2026-11-24 — Study 2: preregistration and evaluation
+
+- Rehearsed registration, verification and evaluation on development dates only (a pretend holdout of 2022-07-01 to 2023-12-13) to make sure nothing could fail after the real holdout was opened.
+- Registration `3f5a032a…` committed and pushed before evaluation. Eligible holdout rows: 722 (pre-close) and 724 (at-open), 224 of them in 2026.
+- Evaluated once. **Verdict under the registered rule: strong.**
+
+| Test on the whole holdout | t | One-sided p |
+|---|---:|---:|
+| H1: pooled QLIKE | 2.75 | 0.003 |
+| H2: pooled 5% FZ0 | 1.72 | 0.043 |
+| Pooled 5% pinball | 2.55 | 0.005 |
+
+- Per set-up: QLIKE +4.8% pre-close (Holm p = 0.010), +2.3% at-open (Holm p = 0.045).
+- 2026 slice alone: pooled QLIKE t = 0.55 (not significant); pooled pinball t = 1.68. Pre-close QLIKE +4.3%, at-open −1.7%.
+- FinBERT terms: intervals include zero in both set-ups. News-count surprise: +1.9% QLIKE in both (exploratory).
+- Full tables: [results.md](results.md).
+
+### Post-evaluation checks (descriptive, not registered)
+
+- Excluding April 2025: pooled QLIKE t = 2.67.
+- The best 1% of days supply 53% of the total QLIKE gain; trimming the best and worst 1% gives t = 4.27.
+- The text model's stacking weight was never zero on the holdout; its mean was 0.60 (pre-close) and 0.56 (at-open).
+
+## 2026-11-24 — Operations
+
+- Added `newsvar update` and `newsvar forecast`. A day extracted before it ended is incomplete, so `update` re-extracts the last three days.
+- The panel takes an `as_of` time: a session that has not closed has no outcome, even when a partial price bar exists.
+- First live run: update in 5 minutes, forecast in 5.5 minutes. For the session of 2026-11-24 the text model gave a 95% VaR of −3.5% (pre-close) and −2.4% open-to-close (at-open). This is the first entry of the prospective log.

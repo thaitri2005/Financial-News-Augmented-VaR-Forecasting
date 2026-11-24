@@ -1,0 +1,422 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{xcolor,tikz,booktabs,graphicx,amsmath,caption,array,enumitem,microtype}
+\usepackage[colorlinks=true,linkcolor=accent,urlcolor=accent,citecolor=accent]{hyperref}
+\usetikzlibrary{arrows.meta,positioning}
+\definecolor{ink}{HTML}{0B0B0B}
+\definecolor{panel}{HTML}{F1F0EC}
+\definecolor{accent}{HTML}{2A78D6}
+\definecolor{second}{HTML}{EB6834}
+\captionsetup{font=small,labelfont=bf}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\input{generated}
+\input{diagrams}
+
+\title{\textbf{Does Financial News Improve Daily Risk Forecasts\\ for the S\&P 500?}\\[4pt]
+\large Two preregistered studies and a working forecasting system}
+\author{Financial News and Daily Market VaR project}
+\date{24 November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent We test whether financial news improves next-day risk forecasts for the S\&P 500 using
+only free data and a CPU. A first study added FinBERT sentiment aggregates to a quantile
+regression and found no improvement in 95\% Value-at-Risk. A diagnosis of that failure led to
+a second design: forecast volatility first, learn from the data which headline words matter,
+and derive Value-at-Risk (VaR) and expected shortfall (ES) from the volatility forecast.
+The second study was preregistered and evaluated once on \PooledHoldQlikeN{} sessions from
+\HoldoutStart{} to \HoldoutEnd{}. A ridge model of headline terms lowered the volatility
+forecast loss of a strong baseline in both forecast set-ups (pooled one-sided $p=\HOneP$) and
+lowered the joint VaR/ES loss ($p=\HTwoP$). The gains are modest: \HoldPreQlikeGain{} and
+\HoldOpenQlikeGain{} in volatility loss and about 1.3--1.5\% in VaR loss. Generic sentiment
+scores add little. On the 224 sessions of 2026, which had never been evaluated in any form,
+the volatility gain is positive but not significant by itself, while the VaR-loss gain is.
+The result is a working, calibrated daily forecasting system and a small, statistically
+supported contribution from news text.
+\end{abstract}
+
+\section{Question and answer}
+
+\textbf{Question.} Does financial news improve a one-day risk forecast for the S\&P 500 beyond
+what market data already provide?
+
+\textbf{Answer.} Yes, modestly, when the news enters as a learned text signal in a volatility
+model. No, when it enters as generic sentiment in a quantile regression.
+
+\begin{center}
+\begin{tabular}{@{}p{0.30\linewidth}p{0.30\linewidth}p{0.30\linewidth}@{}}
+\toprule
+ & \textbf{Study 1} & \textbf{Study 2} \\
+\midrule
+News signal & FinBERT sentiment averages & Ridge model of headline terms \\
+Model & 19-feature quantile regression & HAR volatility model, then VaR and ES \\
+Test period & 500 sessions, Dec 2023--Dec 2025 & \PooledHoldQlikeN{} sessions, Dec 2023--Nov 2026 \\
+Primary result & $-0.06\%$ change in 5\% quantile loss & pooled volatility loss lower, $p=\HOneP$ \\
+Registered verdict & not supported & \textbf{\Verdict} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Data}
+
+All data are free and public. Nothing was purchased and no account was needed.
+
+\begin{center}
+\begin{tabular}{@{}p{0.27\linewidth}p{0.66\linewidth}@{}}
+\toprule
+\textbf{Source} & \textbf{Use} \\
+\midrule
+FRED, S\&P 500 closes & Close-to-close returns (target of the pre-close contract) \\
+Cboe, VIX closes & Volatility control \\
+Yahoo, daily bars for the index and for SPY & Range-based variance; open-to-close return of SPY \\
+GDELT Global Knowledge Graph & Page titles of web news, in 15-minute batches \\
+\texttt{ProsusAI/finbert} (Dec 2020 revision) & Sentiment scores (study 1; secondary in study 2) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{News.} GDELT was streamed batch by batch from its public archive. Each batch was checked
+against the archive's own size and MD5 checksum; only matching titles were kept and the payload
+was discarded. Over 2,641 days this transferred about 1.3\,TiB and kept about 1.2\,GiB.
+A title is kept when it comes from the web collection, is untranslated, carries the theme
+\texttt{ECON\_STOCKMARKET}, mentions a US location and has a usable title. Identical titles or
+URLs within 72 hours are dropped in time order. The resulting corpus, from 23 September 2019 to
+23 November 2026, has 4.33 million retained events and 4.09 million unique titles.
+
+\textbf{Gaps.} GDELT's archive lacks batches in late 2020, mid 2021 and June 2025. A news window
+is used only when at least 95\% of its expected batches were retrieved. A missing batch is never
+read as ``no news''.
+
+\textbf{Timing.} GDELT gives the time of a 15-minute batch, not a publication time. A title is
+treated as available 15 minutes after its batch. Results are therefore a historical replay with
+proxy timestamps, not a record of forecasts issued at the time.
+
+\section{Two forecast set-ups}
+
+\begin{figure}[h]
+\centering
+\timingdiagram
+\caption{Information used and target, for a forecast of session $s$. Grey: market data. Blue:
+news. Orange: the period being forecast.}
+\end{figure}
+
+\textbf{Pre-close.} The forecast for session $s$ is made 30 minutes before the close of
+$s{-}1$. That day's close is not yet known, so market inputs stop at $s{-}2$. The target is the
+index return from the close of $s{-}1$ to the close of $s$.
+
+\textbf{At-open.} The forecast is made at the open of session $s$, with market data through the
+previous close, the overnight gap, and news that arrived overnight. The target is the
+open-to-close return of SPY, the exchange-traded fund that tracks the index. SPY is used
+because the index's own value at 09:30 is partly stale: on development data its overnight gap
+has only 51\% of the variance of SPY's gap, which would have understated the gap and inflated
+the target. An independent reviewer raised this before the test was run.
+
+\section{Method}
+
+\subsection{Volatility target}
+Daily variance is measured from price ranges, which is far less noisy than a squared return.
+For the at-open contract we use the Garman--Klass estimator on SPY's bar:
+\[
+\sigma^2_{\mathrm{GK}} = \tfrac12\left(\ln\tfrac{H}{L}\right)^2-(2\ln 2-1)\left(\ln\tfrac{C}{O}\right)^2 .
+\]
+For the pre-close contract we add the squared overnight return of the index.
+
+\subsection{Baseline: HAR with VIX}
+The baseline is a log-linear heterogeneous autoregressive (HAR) model \cite{corsi}:
+\[
+\ln \sigma^2_{s} = \beta_0+\beta_d \ln \sigma^2_{\text{last}}+\beta_w \ln \overline{\sigma^2}_{5}
++\beta_m \ln \overline{\sigma^2}_{22}+\beta_v \ln \mathrm{VIX}^2 \;[+\beta_g\,\text{gap}] + \varepsilon_s ,
+\]
+with the gap term only at the open. It is refitted by least squares on the first session of each
+month, using every earlier session whose outcome was already known.
+
+\subsection{Text model}
+Generic sentiment assumes that tone is what matters. Following the idea of news-implied
+volatility \cite{nvix}, we let the data choose. Earlier work puts news measures inside volatility models rather than tail regressions \cite{bcp}.
+\begin{enumerate}
+\item \textbf{Vocabulary.} The 5,000 most frequent one- and two-word terms in titles first seen
+by 31 December 2020. It is never updated.
+\item \textbf{Features.} For each news window, the share of headlines that contain each term.
+This uses every retained headline, with no sampling and no language model.
+\item \textbf{Model.} A ridge regression of the baseline's residual on those features. Its
+prediction is scaled by a weight estimated from out-of-fold predictions inside the training
+data. The weight is zero unless the text beats predicting nothing out of fold.
+\end{enumerate}
+The final forecast is the baseline plus the scaled text prediction.
+
+\subsection{From volatility to VaR and ES}
+Returns are divided by forecast volatility. The 5\% quantile and tail mean of those standardized
+returns, taken from past out-of-sample forecasts, are multiplied by the new volatility forecast.
+This is filtered historical simulation.
+
+\subsection{Evaluation}
+\begin{itemize}
+\item \textbf{Volatility:} QLIKE loss, which is robust to noise in the variance measure \cite{patton}.
+\item \textbf{VaR:} pinball (quantile) loss. \textbf{VaR and ES jointly:} the FZ0 loss \cite{fz,pzc}.
+\item \textbf{Tests:} one-sided Diebold--Mariano test with Newey--West errors \cite{dm}; paired
+moving-block bootstrap; a conditional predictive ability test \cite{gw}; coverage tests.
+\end{itemize}
+
+\subsection{Preregistration}
+Before any holdout outcome was evaluated, a record was committed that fixes the inputs by hash,
+the source code by content, every model constant, the holdout dates, the hypotheses, the test
+and the rule for the verdict (record \texttt{\RegistrationId}). The evaluation command checks
+all of these, refuses to run a second time, and wrote its result once.
+
+\begin{quote}
+\textbf{H1 (primary).} The text model has lower QLIKE than the baseline, tested once on the
+average of the two set-ups' daily improvements.\\
+\textbf{H2 (key secondary).} The same for the 5\% FZ0 loss.\\
+\textbf{Verdict.} \emph{Confirmed} if H1 has $p<0.05$, both set-ups improve, and FZ0 does not
+worsen. \emph{Strong} if H2 also has $p<0.05$.
+\end{quote}
+
+\section{Study 1: sentiment in a quantile regression}
+
+The first study scored a 27\% sample of titles with FinBERT, built daily averages of tone and
+news volume, and added them to an L1-penalized linear quantile regression with nine market
+features. It was preregistered and evaluated once on 500 sessions.
+
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Model, 5\% tail} & \textbf{Breaches (25 expected)} & \textbf{Mean quantile loss (bp)} \\
+\midrule
+Market features & 23 & 11.340 \\
++ news counts & 23 & 11.315 \\
++ sentiment & 23 & 11.322 \\
+GARCH-$t$ & 26 & 11.890 \\
+Historical simulation & 30 & 12.179 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Sentiment changed the loss by $-0.06\%$ (95\% interval $-0.022$ to $+0.006$ basis points).
+The claim was not supported.
+
+\textbf{Why it failed.} A diagnostic on training and development data only showed that
+(i) a 5\% quantile yields 25 breaches in 500 days, too few to detect a small effect;
+(ii) negative tone is 0.59 correlated with VIX, which the model already had;
+(iii) a one-parameter model, ``quantile $=$ constant $\times$ VIX'', matched the nine-feature
+regression, so the model was over-parameterized; and (iv) negative tone did predict next-day
+volatility a little after controls ($t=2.9$). That pointed to volatility as the right target.
+
+\section{Study 2: results}
+
+\subsection{Primary test}
+
+\begin{center}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+\textbf{Period} & \textbf{Loss} & \textbf{Sessions} & \textbf{$t$} & \textbf{One-sided $p$} \\
+\midrule
+Whole holdout & QLIKE (H1) & \PooledHoldQlikeN & \PooledHoldQlikeT & \PooledHoldQlikeP \\
+Whole holdout & 5\% FZ0 (H2) & \PooledHoldFzN & \PooledHoldFzT & \PooledHoldFzP \\
+Whole holdout & 5\% pinball & \PooledHoldPinN & \PooledHoldPinT & \PooledHoldPinP \\
+\midrule
+Dec 2023--2025 & QLIKE & \PooledEarlierQlikeN & \PooledEarlierQlikeT & \PooledEarlierQlikeP \\
+2026 (never evaluated) & QLIKE & \PooledFreshQlikeN & \PooledFreshQlikeT & \PooledFreshQlikeP \\
+2026 (never evaluated) & 5\% pinball & \PooledFreshPinN & \PooledFreshPinT & \PooledFreshPinP \\
+2026 (never evaluated) & 5\% FZ0 & \PooledFreshFzN & \PooledFreshFzT & \PooledFreshFzP \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Both hypotheses pass on the whole holdout, so the registered verdict is \textbf{\Verdict}.
+Each set-up also passes by itself after Holm correction ($p=\HolmPre$ pre-close, $p=\HolmOpen$
+at-open). Only the first two rows were registered as tests; the slice rows are descriptive.
+
+\subsection{By set-up}
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Pre-close} (\HoldPreN{} sessions)} & \multicolumn{2}{c}{\textbf{At-open} (\HoldOpenN{} sessions)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Baseline & Text model & Baseline & Text model \\
+\midrule
+QLIKE & \HoldPreHarQlike & \HoldPreTextQlike & \HoldOpenHarQlike & \HoldOpenTextQlike \\
+5\% pinball loss (bp) & \HoldPreHarPin & \HoldPreTextPin & \HoldOpenHarPin & \HoldOpenTextPin \\
+5\% FZ0 loss & \HoldPreHarFz & \HoldPreTextFz & \HoldOpenHarFz & \HoldOpenTextFz \\
+5\% breaches (expected) & \HoldPreHarBreaches{} (\HoldPreExpected) & \HoldPreTextBreaches{} (\HoldPreExpected) & \HoldOpenHarBreaches{} (\HoldOpenExpected) & \HoldOpenTextBreaches{} (\HoldOpenExpected) \\
+1\% breaches (expected) & \HoldPreHarBreachesOne{} (\HoldPreExpectedOne) & \HoldPreTextBreachesOne{} (\HoldPreExpectedOne) & \HoldOpenHarBreachesOne{} (\HoldOpenExpectedOne) & \HoldOpenTextBreachesOne{} (\HoldOpenExpectedOne) \\
+Coverage test $p$ (5\%) & \HoldPreHarKupiec & \HoldPreTextKupiec & \HoldOpenHarKupiec & \HoldOpenTextKupiec \\
+\midrule
+QLIKE gain of text & \multicolumn{2}{c}{\HoldPreQlikeGain{} ($t=\HoldPreQlikeT$)} & \multicolumn{2}{c}{\HoldOpenQlikeGain{} ($t=\HoldOpenQlikeT$)} \\
+5\% pinball gain of text & \multicolumn{2}{c}{\HoldPrePinGain{} ($t=\HoldPrePinT$)} & \multicolumn{2}{c}{\HoldOpenPinGain{} ($t=\HoldOpenPinT$)} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Coverage is acceptable for every model. For scale, the baseline itself beats 250-day historical
+simulation by \HoldPreHarVsHsPin{} (pre-close) and \HoldOpenHarVsHsPin{} (at-open) in 5\%
+pinball loss, and historical simulation has 15 breaches at the 1\% level where about 7 are
+expected. Most of the system's accuracy comes from the volatility model; news adds a small
+further step.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../docs/figures/vol_cumulative_qlike.png}
+\caption{Running total of the text model's daily QLIKE improvement over the baseline.
+A rising line means the text model is ahead.}
+\end{figure}
+
+\subsection{The never-evaluated 2026 slice}
+
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{2026, 224 sessions} & \textbf{Pre-close} & \textbf{At-open} \\
+\midrule
+QLIKE gain of text & \FreshPreQlikeGain{} ($t=\FreshPreQlikeT$) & \FreshOpenQlikeGain{} ($t=\FreshOpenQlikeT$) \\
+5\% pinball gain of text & \FreshPrePinGain{} ($t=\FreshPrePinT$) & \FreshOpenPinGain{} ($t=\FreshOpenPinT$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This slice is the cleanest evidence, and it is mixed. Pre-close volatility forecasts improve
+by about the same amount as before. At-open volatility forecasts do not improve in 2026,
+although the VaR loss still does. With 224 sessions the slice cannot settle the question
+by itself; it does not contradict the main result and does not independently confirm it.
+
+\subsection{Which news signal matters}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../docs/figures/vol_gains_by_term.png}
+\caption{QLIKE improvement over the baseline on the holdout for each news term, with 95\%
+bootstrap intervals. Only the text model was a registered hypothesis.}
+\end{figure}
+
+\begin{itemize}
+\item The learned text model is the only term that clearly helps in both set-ups.
+\item A simple news-volume surprise also lowers QLIKE (\HoldPreCountGain{} and
+\HoldOpenCountGain), but barely moves VaR loss. This was exploratory.
+\item FinBERT sentiment gives \HoldPreShareSurpriseGain{} pre-close and
+\HoldOpenShareSurpriseGain{} at-open, with intervals that include zero. This agrees with study 1.
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../docs/figures/vol_term_weights.png}
+\caption{Largest term weights from one descriptive fit on all data. Many are sensible
+(``ahead fed'', ``sell-off'', ``futures drop'' raise the forecast; ``stocks rally'', ``hit
+record'' lower it). Others are noise from an unfiltered web feed (``wisconsin'', ``sugar'').}
+\end{figure}
+
+\subsection{Robustness}
+
+These checks were run after the evaluation and are descriptive.
+\begin{itemize}
+\item \textbf{Not one episode.} Without April 2025 (the tariff shock) the pooled QLIKE test
+still gives $t=2.67$.
+\item \textbf{Concentration.} The seven best days (1\%) supply 53\% of the total QLIKE gain.
+This is usual for QLIKE, which rewards being less wrong on extreme days. Removing the best and
+worst 1\% of days gives $t=4.27$.
+\item \textbf{State dependence.} The conditional test rejects equal accuracy in both set-ups
+($p=\HoldPreGwP$ and $\HoldOpenGwP$): the size of the gain depends on market conditions.
+\item \textbf{Not a restatement of that day's market.} On development data, giving the pre-close
+baseline the same-day variance and VIX, which it cannot have in practice, left the text
+model's volatility gain at $+3.4\%$ ($t=3.3$). Its VaR gain shrank from $+2.2\%$ to $+0.6\%$.
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{../docs/figures/vol_var_forecasts.png}
+\caption{Pre-close 95\% VaR and expected shortfall from the text model against realized
+returns on the holdout. Circles mark breaches. The line breaks where GDELT has no data.}
+\end{figure}
+
+\section{Limits}
+
+\begin{enumerate}
+\item \textbf{The effect is small.} Volatility loss falls 2--5\% and VaR loss about 1.5\%. It is
+statistically supported, not large.
+\item \textbf{Part of the holdout was used before.} December 2023 to December 2025 was the test
+period of study 1, and that study's failure prompted this design. No volatility or text model
+had been evaluated there, but the design is not blind to that period. The 2026 slice is fully
+clean and is only partly supportive.
+\item \textbf{The baseline uses daily data only.} In the pre-close set-up headlines run to
+15:30 while prices stop at the previous close. The result shows that news text improves a
+daily-data model. It does not show that news beats intraday prices, which were not available.
+\item \textbf{Noisy source.} GDELT titles are web page titles, not curated financial headlines.
+In an audit of 200 titles, about one in seven was off-topic. The audit was rated by the
+project's AI agent, not by a human.
+\item \textbf{Proxy timestamps.} See Section 2.
+\item \textbf{Design choices were made on development data.} Five news terms, two penalty grids,
+two feature forms and two price sources were compared there, and are all listed in the research
+log. One of them, the penalty grid, changes the development result noticeably.
+\item \textbf{The 1\% tail} is not improved by news and has too few breaches to say much.
+\end{enumerate}
+
+\section{The system}
+
+\begin{figure}[h]
+\centering
+\pipelinediagram
+\caption{Pipeline. Dashed boxes are external sources.}
+\end{figure}
+
+The project is a Python package, \texttt{newsvar}, with a command-line interface. Every stage
+writes a checksummed, content-addressed artifact and can be resumed.
+
+\begin{center}
+\begin{tabular}{@{}p{0.30\linewidth}p{0.63\linewidth}@{}}
+\toprule
+\textbf{Command} & \textbf{What it does} \\
+\midrule
+\texttt{newsvar update} & Refreshes prices, the calendar, GDELT titles, the corpus and scores (about 5 minutes) \\
+\texttt{newsvar forecast} & Issues volatility, VaR and ES for the next session and appends to a log \\
+\texttt{newsvar vol develop / preregister / evaluate / report} & The staged, gated study \\
+\texttt{newsvar gdelt extract}, \texttt{news corpus}, \texttt{news score} & The data stages \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{A live forecast.} On 24 November 2026 the system issued, for that day's session, a
+95\% VaR of $-3.5\%$ and ES of $-5.2\%$ (pre-close set-up, index close-to-close) and a 95\% VaR
+of $-2.4\%$ (at-open set-up, SPY open-to-close). VIX had closed at 26.6 the day before.
+
+\textbf{Resources.} Everything ran on four CPU cores and 15\,GiB of memory: about three hours to
+stream the news archive, five hours to score titles with FinBERT (not needed by the text
+model), and minutes for everything else.
+
+\textbf{Quality control.} The code has 105 automated tests on synthetic data, including tests
+that changing future data cannot change an earlier forecast. Two independent reviewer agents
+audited the second study before its test was run. They found no look-ahead; they did find a
+stale opening price, a mis-sized test, in-sample tail estimates and weak registration checks,
+all of which were fixed before registration. A third review covered the finished project.
+
+\section{Conclusion}
+
+A free, noisy news feed does carry a little information about tomorrow's risk that a good
+daily-data volatility model lacks. It shows up when the model is allowed to learn which words
+matter and when the target is volatility; it does not show up as generic sentiment in a tail
+regression. The evidence meets a preregistered standard on the whole holdout and is suggestive
+but not conclusive on the one fully clean year.
+
+The practical value today is the forecasting system itself: a calibrated VaR and ES forecaster
+that clearly beats historical simulation, with a small news component on top.
+
+\textbf{What would strengthen the claim.} (i) Keep logging forecasts prospectively: every new
+session is clean evidence with real timestamps. (ii) Test a curated headline feed with a longer
+history. (iii) Add intraday prices to the baseline to see whether news survives.
+
+\begin{thebibliography}{9}\small
+\bibitem{corsi} F.~Corsi (2009). A simple approximate long-memory model of realized volatility. \emph{Journal of Financial Econometrics}.
+\bibitem{nvix} A.~Manela and A.~Moreira (2017). News implied volatility and disaster concerns. \emph{Journal of Financial Economics} 123, 137--162.
+\bibitem{patton} A.~Patton (2011). Volatility forecast comparison using imperfect volatility proxies. \emph{Journal of Econometrics}.
+\bibitem{fz} T.~Fissler and J.~Ziegel (2016). Higher order elicitability and Osband's principle. \emph{Annals of Statistics}.
+\bibitem{pzc} A.~Patton, J.~Ziegel and R.~Chen (2019). Dynamic semiparametric models for expected shortfall (and Value-at-Risk). \emph{Journal of Econometrics}.
+\bibitem{dm} F.~Diebold and R.~Mariano (1995). Comparing predictive accuracy. \emph{Journal of Business \& Economic Statistics}.
+\bibitem{gw} R.~Giacomini and H.~White (2006). Tests of conditional predictive ability. \emph{Econometrica} 74, 1545--1578.
+\bibitem{bcp} M.~Bernardi, L.~Catania and L.~Petrella (2017). Are news important to predict large losses? \emph{European Journal of Finance}.
+\end{thebibliography}
+\end{document}

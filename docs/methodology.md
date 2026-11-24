@@ -1,107 +1,121 @@
-# Methodology of the completed study
+# Methodology
 
-This describes the study as it was run and evaluated in November 2026. The proposal for a stronger follow-up is in [next-methodology.md](next-methodology.md).
+This describes study 2, the volatility-first design that the forecasting system uses. Study 1, a sentiment quantile regression that found no effect, is in [methodology-study1.md](methodology-study1.md). The reasoning that led from one to the other is in the [research log](research-log.md).
 
 ## Question
 
-Does news sentiment improve a one-day 95% Value-at-Risk forecast for the S&P 500, beyond what market data and the volume of news already provide?
+Does news text improve next-day volatility, Value-at-Risk (VaR) and expected shortfall (ES) forecasts for the S&P 500, beyond a good model built from daily market data?
 
-## Forecast contract
+## Two forecast set-ups
 
-| Element | Definition |
-|---|---|
-| Target | S&P 500 price-index simple return from the close of session `t` to the close of session `t+1` |
-| Forecast | The 5% quantile of that return (95% VaR). The 1% quantile is reported as exploratory |
-| Information cutoff | 30 minutes before the scheduled close of session `t`; the forecast is issued 15 minutes before the close |
-| Market inputs | Daily closes through session `t-1` only |
-| News inputs | Headlines available in `(cutoff of t-1, cutoff of t]` |
-| Calendar | NYSE sessions including early closes, from `exchange_calendars` |
+| | Pre-close | At-open |
+|---|---|---|
+| Forecast made | 30 minutes before the close of session `s−1` | At the open of session `s` |
+| Market inputs | Through the close of `s−2`, plus VIX | Through the close of `s−1`, plus VIX and the overnight gap |
+| News window | From the previous cutoff to this cutoff | From the previous close to 15 minutes before the open |
+| Target return | Index close of `s−1` to close of `s` | SPY open to close of `s` |
+| Target variance | Squared overnight return + Garman–Klass range variance (index) | Garman–Klass range variance (SPY) |
 
-Because today's close is not known at the cutoff, the newest usable return is yesterday's. Volatility models therefore forecast two steps ahead and use the second step.
+The pre-close forecast cannot see the close of `s−1`, so it is effectively two steps ahead.
+
+The at-open set-up uses SPY, the exchange-traded fund that tracks the index, because the index's own value at 09:30 is partly stale: many constituents have not traded yet. On development data the index's overnight gap had 51% of the variance of SPY's gap. A reviewer raised this before the test.
 
 ## Data
 
-| Source | Use | Notes |
-|---|---|---|
-| FRED `SP500` | Target and market features | Daily closes; rolling ten-year history from 2016-11-25 |
-| Cboe VIX history | Volatility control | Prior-session close only |
-| GDELT GKG 2.0, English feed | News titles | Streamed from the public archive; every 15-minute batch checked against the catalog size and MD5 |
-
-**News selection.** A GDELT record is kept when it is from the web collection, untranslated, tagged with the theme `ECON_STOCKMARKET`, mentions at least one US location, and has a usable page title. Titles are HTML-unescaped, stripped of markup and whitespace-normalized; case, numbers and punctuation are kept.
-
-**Deduplication.** Records are processed in time order. A record is dropped if the same case-folded title or the same URL appeared in the previous 72 hours.
-
-**Availability.** GDELT gives a 15-minute batch time, not a publication time. A title is treated as available at batch time plus 15 minutes. This is a proxy, so results are a historical replay, not issued forecasts.
-
-**Completeness.** A news window is complete when at least 95% of its expected 15-minute batches were retrieved and verified. Incomplete windows are excluded, never read as "no news".
-
-| Corpus, 2019-09-23 to 2025-12-31 | Count |
-|---|---:|
-| Records with the stock-market theme | 14,146,899 |
-| Passing the relevance rule | 6,496,614 |
-| Retained after deduplication | 3,794,159 |
-| Unique titles | 3,582,698 |
-| Titles scored (27% sample) | 967,729 |
-
-## Sentiment
-
-- Model: `ProsusAI/finbert`, pinned to its December 2020 revision, CPU, maximum 128 tokens. Each title gets positive, negative and neutral probabilities.
-- The model predates every development and test date, so it cannot have seen them.
-- Scoring all 3.58 million titles would take about 14 hours, so a fixed 27% sample was scored. A title is in the sample when the first 32 bits of its SHA-256 fall below 27% of the range. The rule was set before the corpus size was known. News counts always use every retained title.
-
-## Features
-
-Three nested sets, all computed from information available at the cutoff.
-
-| Set | Features |
+| Source | Use |
 |---|---|
-| **M** market (9) | last return, its absolute value, squared downside; 5-, 21-, 63-day volatility; EWMA volatility; VIX level and change |
-| **C** = M + counts (4) | log news rate per 24 hours; its z-score against the previous 63 windows; log window length; has-news flag |
-| **S** = C + sentiment (6) | mean signed score; mean negative probability; dispersion; share of negative headlines; mean minus its 21-window average; log negative intensity |
+| FRED `SP500` | Index closes; close-to-close returns |
+| Cboe VIX | Volatility control, prior close only |
+| Yahoo daily bars, `^GSPC` and `SPY` | Open, high, low, close for range-based variance; SPY dividends to correct the gap on ex-dates |
+| GDELT GKG 2.0, English | Page titles in 15-minute batches, each verified against the archive's checksum |
+
+Index bars are validated against FRED closes; SPY returns must correlate at least 0.99 with index returns.
+
+**News selection, deduplication, availability and completeness** are unchanged from study 1: web titles tagged `ECON_STOCKMARKET` with a US location; duplicates within 72 hours dropped in time order; a title is available 15 minutes after its batch; a window is used only if at least 95% of its batches were retrieved. Corpus: 4.33 million retained events from 2019-09-23 to 2026-11-23.
 
 ## Models
 
-| Model | Description |
-|---|---|
-| Q0, Q1, Q2 | Linear quantile regression on M, C, S with an L1 penalty; median imputation and standardization fitted on training rows only |
-| T0, T1, T2 | Small gradient-boosted quantile trees on the same sets (secondary) |
-| B0 | Historical simulation, last 250 returns |
-| B1 | Gaussian EWMA, decay 0.94 |
-| B2 | GARCH(1,1) with Student-t innovations, two-step simulation |
-| B3 | Filtered historical simulation on the same GARCH filter |
+### Baseline: log-HAR with VIX
 
-Every model is refitted on the first session of each month, using only rows whose outcome was already known at that moment. Q0, Q1 and Q2 are compared on identical dates.
+```text
+log variance(s) = b0 + bd·log(last variance) + bw·log(5-day mean) + bm·log(22-day mean)
+                + bv·log(VIX²) [+ bg·gap]
+```
 
-## Split
+- Ordinary least squares, refitted on the first session of each month on all earlier sessions whose outcome was known.
+- At least 250 training rows.
+- The variance forecast applies the usual lognormal mean correction.
 
-The split was fixed from data-availability counts before any return was read.
+### Text model
 
-| Role | Rows | Target dates |
-|---|---:|---|
-| Training | 691 | 2019-12-24 to 2022-12-12 |
-| Development | 250 | 2022-12-13 to 2023-12-13 |
-| Final test | 500 | 2023-12-14 to 2025-12-31 |
+1. **Vocabulary.** The 5,000 most frequent one- and two-word terms in titles first seen by 2020-12-31, each in at least 200 titles. English stop words removed. Never updated.
+2. **Features.** For each news window, the share of retained headlines containing each term, transformed by `log1p(1000 × share)` and standardized on training rows. Every retained headline is used; there is no sampling and no language model.
+3. **Ridge on the residual.** The baseline's log-variance residual is regressed on the features. The penalty is chosen from {10, 100, 1,000, 10,000} by 5-fold cross-validation over contiguous blocks of the training rows. In practice it always chooses 10,000.
+4. **Stacking.** The prediction is multiplied by a weight: the slope of the residual on its out-of-fold prediction, limited to between 0 and 1.5, and set to zero unless the weighted out-of-fold prediction beats predicting zero.
 
-Development chose one L1 penalty per feature set from {0.001, 0.01, 0.1}, one tree setting from four, and the strongest baseline. Within 0.5% of the best loss, the simpler setting wins.
+Final forecast: baseline log variance plus the weighted text prediction.
+
+### Other news terms (exploratory)
+
+Each is one extra regressor in the HAR model:
+
+- FinBERT share of negative headlines, as a level and as a surprise;
+- FinBERT mean negative probability, as a surprise;
+- news-count surprise.
+
+A surprise is the residual from regressing the measure on VIX, the last known return and its own previous value, refitted monthly on past data. FinBERT terms use the 27% scored sample; a window needs at least 20 scored headlines.
+
+### VaR and expected shortfall
+
+Filtered historical simulation: divide each past return by its volatility forecast, take the 5% (or 1%) quantile and the mean below it, and multiply by the new volatility forecast. The standardized returns come from past out-of-sample forecasts once 250 are available; before that, from in-sample fitted volatilities.
+
+### Reference model
+
+250-day historical simulation on each set-up's own returns.
 
 ## Evaluation
 
-- **Score:** pinball (quantile) loss, reported in basis points of return.
-- **Primary comparison:** Q2 versus Q1 at the 5% tail. This isolates sentiment from news volume.
-- **Uncertainty:** paired moving-block bootstrap of daily loss differences, 2,000 replications, block length 20, fixed seed; blocks of 10 and 5 as checks.
-- **Decision rule:** the claim is supported only if the mean improvement is positive and the 95% interval excludes zero. A 2% relative gain marks practical interest.
-- **Calibration:** breach counts, Kupiec coverage test, Christoffersen independence test, longest breach run.
-- **Sensitivities (features rebuilt, models refitted):** availability delays of 60 and 240 minutes and one full session; sentiment lagged 5 and 20 days; market-recap headlines removed; the largest publisher removed; counts including duplicates.
+| Element | Choice |
+|---|---|
+| Volatility loss | QLIKE |
+| VaR loss | Pinball loss at 5% and 1% |
+| Joint VaR and ES loss | FZ0 |
+| Main test | One-sided Diebold–Mariano test with Newey–West errors |
+| Pooling | The two set-ups' daily improvements are averaged per session and tested once |
+| Supporting | Moving-block bootstrap (2,000 replications; blocks 20, 10, 5); Holm-adjusted per-set-up tests; Giacomini–White conditional test; Kupiec coverage and dynamic-quantile tests |
+
+The baseline and the text model are nested and estimated on an expanding window, which makes the Diebold–Mariano test conservative. In a reviewer's simulation with pure-noise text, it rejected in 0.8% of runs at a nominal 5%.
+
+## Periods
+
+| Period | Target dates | Use |
+|---|---|---|
+| Development | 2021-01-04 to 2023-12-13 | Design choices; all results in the research log |
+| Holdout | 2023-12-14 to 2026-11-20 | Evaluated once |
+| … of which earlier slice | 2023-12-14 to 2025-12-31 | Was the test period of study 1 |
+| … of which fresh slice | 2026-01-02 to 2026-11-20 | Never evaluated in any form before |
 
 ## Preregistration
 
-Inputs, split, features, chosen settings, the primary comparison and the decision rule were written to [a preregistration record](records/preregistration_20261124.json) and committed before the test period was evaluated. The test was evaluated once.
+The [record](records/volatility_preregistration_20261124.json) was committed before the holdout was evaluated. It fixes:
 
-## Limits to keep in mind
+- inputs by hash, including the score table;
+- source code by content (Git tree of `src`, and hashes of `pyproject.toml` and `uv.lock`);
+- every model constant;
+- eligible holdout row counts (computed without reading outcomes);
+- hypotheses, test and verdict rule;
+- disclosures, including that study 1's failure prompted the design.
 
-1. **Noisy source.** GDELT page titles are not curated financial headlines. In a 200-title audit, 14–16% were off-topic (crime, local politics, product pages). The audit was rated by the implementing agent, not a human annotator.
-2. **Archive gaps.** GDELT lacks batches in late 2020, mid 2021 and June 2025. 2020 has 84.2% complete windows against a planned minimum of 90%. Overall completeness is 95.4%.
-3. **Small sample.** 500 test forecasts mean 25 expected breaches at 5%. Only large effects are detectable.
-4. **Sampled sentiment.** The 27% sample adds noise to daily sentiment (standard error about 0.022 against a day-to-day spread of 0.060).
-5. **One development year**, and a calm one.
-6. **Proxy timing**, as described above.
+**H1 (primary):** the text model has lower QLIKE than the baseline, pooled test.
+**H2 (key secondary):** the same for the 5% FZ0 loss.
+**Verdict:** *confirmed* if H1 has p < 0.05, both set-ups improve and FZ0 does not worsen; *strong* if H2 also has p < 0.05.
+
+The evaluation command checks every recorded value against the code and data, writes a marker before computing any outcome, and refuses to run twice.
+
+## Independent review
+
+Two reviewer agents audited the study before the holdout was opened, using synthetic data only. Neither found look-ahead. Their findings and the fixes are tabulated in the [research log](research-log.md). A third review covered the finished project.
+
+## Limits
+
+See [results.md](results.md#limits).

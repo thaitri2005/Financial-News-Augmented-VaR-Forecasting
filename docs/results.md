@@ -1,99 +1,101 @@
 # Results
 
-**News sentiment did not improve the VaR forecast.** The preregistered claim is not supported.
+Two preregistered studies asked whether financial news improves next-day risk forecasts for the S&P 500.
 
-The test covers 500 forecasts with target dates from 2023-12-14 to 2025-12-31. Scores are mean pinball loss in basis points (bp) of return; lower is better. Method details are in [methodology.md](methodology.md); complete tables are in [records/result_tables.md](records/result_tables.md).
+| | Study 1 | Study 2 |
+|---|---|---|
+| News signal | FinBERT sentiment averages | Ridge model of headline terms |
+| Model | 19-feature quantile regression | HAR volatility model, then VaR and ES |
+| Test | 500 sessions, Dec 2023 – Dec 2025 | 722 sessions, Dec 2023 – Nov 2026 |
+| Primary result | −0.06% change in 5% quantile loss | Pooled volatility loss lower, one-sided p = 0.003 |
+| Registered verdict | Not supported | **Strong** (both hypotheses pass) |
 
-## Primary comparison
+**Bottom line.** News helps a little when the model learns which headline words matter and the target is volatility. Generic sentiment does not help. The gain is small: 2–5% in volatility loss and about 1.5% in VaR loss.
 
-Q2 (market + news counts + sentiment) against Q1 (market + news counts), 5% tail.
+The full write-up is the [PDF report](../report/report.pdf). Study 1 is detailed in [results-study1.md](results-study1.md). Method: [methodology.md](methodology.md).
 
-| Measure | Value |
-|---|---|
-| Q1 mean pinball loss | 11.315 bp |
-| Q2 mean pinball loss | 11.322 bp |
-| Improvement from sentiment | −0.0066 bp (−0.06%) |
-| 95% interval, block 20 | −0.0222 to +0.0058 bp |
-| 95% interval, blocks 10 and 5 | −0.0203 to +0.0054; −0.0178 to +0.0039 bp |
-| Claim supported | No |
+## Study 2: primary test
 
-The two models produce almost the same forecasts. At the penalty chosen in development, the regression gives the sentiment features almost no weight.
+Holdout: 2023-12-14 to 2026-11-20. The text model is compared with the HAR baseline; the test averages the two forecast set-ups' daily improvements.
 
-![5% quantile forecasts and realized returns](figures/final_quantiles_and_breaches.png)
+| Hypothesis | Loss | Sessions | t | One-sided p | Passed |
+|---|---|---:|---:|---:|---|
+| H1 (primary) | QLIKE, volatility | 722 | 2.75 | 0.003 | yes |
+| H2 (key secondary) | FZ0, 5% VaR and ES jointly | 722 | 1.72 | 0.043 | yes |
+| supporting | Pinball, 5% VaR | 722 | 2.55 | 0.005 | |
 
-![Cumulative loss difference between Q1 and Q2](figures/final_cumulative_q2_vs_q1.png)
+Each set-up also passes alone after Holm correction (p = 0.010 pre-close, 0.045 at-open).
 
-## All models, 5% tail
+![Cumulative volatility-forecast gain of the text model](figures/vol_cumulative_qlike.png)
 
-| Model | Breaches (25 expected) | Mean pinball loss (bp) | Coverage test p |
+## By forecast set-up
+
+| | Pre-close (722 sessions) | | At-open (724 sessions) | |
+|---|---:|---:|---:|---:|
+| | Baseline | Text model | Baseline | Text model |
+| QLIKE | 0.4180 | 0.3978 | 0.3274 | 0.3198 |
+| 5% pinball loss (bp) | 11.39 | 11.22 | 9.00 | 8.89 |
+| 5% breaches (36 expected) | 27 | 30 | 34 | 33 |
+| 1% breaches (7.2 expected) | 8 | 8 | 7 | 8 |
+| Coverage test p, 5% | 0.10 | 0.28 | 0.70 | 0.58 |
+| **QLIKE gain from text** | | **+4.8%** (t = 2.58) | | **+2.3%** (t = 1.69) |
+| **5% pinball gain from text** | | **+1.5%** (t = 1.98) | | **+1.3%** (t = 2.46) |
+
+For scale, the baseline alone beats 250-day historical simulation by 4.7% (pre-close) and 9.9% (at-open) in 5% pinball loss, and historical simulation has 15 breaches at the 1% level against 7.2 expected. Most of the accuracy comes from the volatility model; news adds a small step.
+
+## The never-evaluated 2026 slice
+
+The 224 sessions of 2026 had never been evaluated in any form before this test.
+
+| 2026 only | Pre-close | At-open | Pooled |
 |---|---:|---:|---:|
-| Q0 market | 23 | 11.340 | 0.68 |
-| Q1 + news counts | 23 | 11.315 | 0.68 |
-| Q2 + sentiment | 23 | 11.322 | 0.68 |
-| T2 tree with sentiment | 29 | 11.251 | 0.42 |
-| T1 tree with counts | 29 | 11.513 | 0.42 |
-| T0 tree, market | 28 | 11.672 | 0.55 |
-| B2 GARCH-t | 26 | 11.890 | 0.84 |
-| B3 filtered historical simulation | 26 | 11.910 | 0.84 |
-| B1 Gaussian EWMA | 30 | 12.173 | 0.32 |
-| B0 historical simulation | 30 | 12.179 | 0.32 |
+| QLIKE gain from text | +4.3% (t = 1.72) | −1.7% (t = −0.58) | t = 0.55, p = 0.29 |
+| 5% pinball gain from text | +1.8% (t = 1.15) | +1.6% (t = 2.01) | t = 1.68, p = 0.047 |
 
-Every model is acceptably calibrated; no independence test rejects.
+This is the cleanest evidence and it is mixed: the pre-close volatility gain holds, the at-open one does not, and the VaR-loss gain holds in both. With 224 sessions the slice neither contradicts nor independently confirms the main result.
 
-## Secondary comparisons (exploratory)
+## Which news signal matters
 
-| Comparison, 5% tail | Relative gain | 95% interval (bp) |
-|---|---:|---|
-| News counts: Q1 vs Q0 | +0.22% | +0.001 to +0.046 |
-| Counts and sentiment: Q2 vs Q0 | +0.16% | −0.008 to +0.041 |
-| Quantile regression vs GARCH-t: Q0 vs B2 | +4.62% | −0.141 to +1.446 |
-| VIX features: Q0 with vs without | +2.88% | −0.076 to +0.776 |
-| Trees: T2 vs T1 | +2.27% | −0.360 to +1.171 |
+![QLIKE improvement by news term](figures/vol_gains_by_term.png)
 
-- The news-count gain is tiny, and in development it had the opposite sign (−4.7%). It is not a finding.
-- The market-only quantile regression beat GARCH-t by 4.6%, but the interval includes zero.
+| News term added to the baseline | Pre-close QLIKE gain | At-open QLIKE gain | Status |
+|---|---:|---:|---|
+| Text model | +4.8% | +2.3% | registered hypothesis |
+| News-count surprise | +1.9% (t = 2.08) | +1.9% (t = 2.62) | exploratory |
+| FinBERT negative share | +2.6% (t = 1.06) | +0.5% | exploratory |
+| FinBERT negative-share surprise | +1.9% (t = 0.92) | −0.2% | exploratory |
+| FinBERT mean-negative surprise | +2.0% (t = 0.98) | −0.2% | exploratory |
 
-## 1% tail (exploratory)
+![Largest term weights](figures/vol_term_weights.png)
 
-Five breaches were expected; Q0, Q1 and Q2 each had nine. Q2 against Q1 gained 3.8%, with an interval from −0.21 to +0.65 bp. Q2's 1% quantile crossed above its 5% quantile on 10 of 500 days.
+Many of the largest weights are sensible ("ahead fed", "sell-off", "futures drop" raise the forecast; "stocks rally", "hit record" lower it). Others are noise from an unfiltered web feed.
 
-## Sensitivities
+## Robustness (run after the evaluation; descriptive)
 
-Each row rebuilds the features and refits the models. Q2 against Q1, 5% tail.
+- **Not one episode.** Without April 2025, the pooled QLIKE test still gives t = 2.67.
+- **Concentrated, as QLIKE gains usually are.** The best 1% of days supply 53% of the total gain. Removing the best and worst 1% gives t = 4.27.
+- **State-dependent.** The conditional predictive ability test rejects equal accuracy in both set-ups (p = 0.004 and 0.028).
+- **Not just that day's market move.** On development data, giving the pre-close baseline the same-day variance and VIX (which it cannot have in practice) left the volatility gain at +3.4% (t = 3.3); the VaR gain shrank from +2.2% to +0.6%.
 
-| Variant | Relative gain |
-|---|---:|
-| News available 60 minutes after batch time | +0.02% |
-| News available 240 minutes after batch time | −0.01% |
-| News delayed one full session | 0.00% |
-| Sentiment lagged 5 sessions | 0.00% |
-| Sentiment lagged 20 sessions | −0.15% |
-| Market-recap headlines removed | +0.02% |
-| Largest publisher removed | −0.03% |
-| Counts include duplicates | −0.07% |
+![Pre-close VaR and ES forecasts](figures/vol_var_forecasts.png)
 
-Every interval includes zero. By volatility regime: calm −0.003 bp (283 days), middle −0.024 bp (154), turbulent +0.018 bp (63).
+## Limits
 
-## Development period
-
-On the 250 development forecasts (2023), sentiment added 0.5% over counts (interval includes zero), counts made the model 4.7% worse, and VIX improved the market model by 9.2%. The quantile models were too conservative there: 5 breaches against 12.5 expected, because they were trained mostly on the more volatile 2020–2022 period.
-
-## What this does and does not show
-
-It shows that tone aggregates from a broad feed of GDELT page titles, scored with a 2020 FinBERT, did not improve a regularized linear 5% VaR forecast for the S&P 500 in 2024–2025.
-
-It does not show that financial news carries no risk information. The test has low power, the feed is noisy, sentiment was sampled, and timing is a proxy. A diagnostic on the training and development data found a small but statistically visible link between negative tone and next-day volatility; see [next-methodology.md](next-methodology.md).
-
-The 2023-12-14 to 2025-12-31 period is now used up as a confirmatory test for this design.
+1. **Small effect.** Statistically supported, not large.
+2. **Part of the holdout was used before.** December 2023 to December 2025 was study 1's test period, and study 1's failure prompted this design. No volatility or text model had been evaluated there, but the design is not blind to that period.
+3. **Daily-data baseline.** The result shows news text improves a model built from daily prices. It does not show that news beats intraday prices, which were not available.
+4. **Noisy source.** GDELT page titles, about one in seven off-topic in an audit rated by the project's AI agent, not a human.
+5. **Proxy timestamps.** News is dated by GDELT's 15-minute batch plus 15 minutes.
+6. **Development choices.** Five news terms, two penalty grids, two feature forms and two price sources were compared on development data. All are in the [research log](research-log.md). The penalty grid changes the pre-close development result noticeably.
+7. **The 1% tail** is not improved by news.
 
 ## Records
 
 | Record | Content |
 |---|---|
-| [gdelt_extraction](records/gdelt_extraction_20261124.json) | Batches verified, absent and failed |
-| [news_corpus](records/news_corpus_20261124.json) | Corpus counts and table checksums |
-| [market_snapshot](records/market_snapshot_20261124.json) | Price file sizes and hashes |
-| [news_admission](records/news_admission_20261124.json) | Window completeness, eligible rows, split |
-| [development_record](records/development_record_20261124.json) | All 42 development runs and sensitivities |
-| [preregistration](records/preregistration_20261124.json) | Frozen protocol |
-| [final_evaluation](records/final_evaluation_20261124.json) | Test-period scores and comparisons |
+| [volatility_preregistration](records/volatility_preregistration_20261124.json) | Frozen protocol, hypotheses, disclosures |
+| [volatility_evaluation](records/volatility_evaluation_3f5a032a19e2.json) | Holdout results |
+| [volatility_summary](records/volatility_summary_3f5a032a19e2.json) | Slice tests and term weights |
+| [volatility_result_tables](records/volatility_result_tables.md) | All tables, generated |
+| [volatility_development](records/volatility_development_20261124.json) | Development-period results |
+| Study 1 records | Listed in [results-study1.md](results-study1.md) |
