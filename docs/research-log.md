@@ -15,7 +15,7 @@ Run on training and development rows only ([`scripts/diagnose_news_signal.py`](.
 - Negative tone correlates 0.59 with VIX; mostly redundant with market state.
 - The share of negative headlines still predicts next-day log absolute return after controls (t = 2.9).
 - "Quantile = constant × VIX" matches the 9-feature regression: the model had too many parameters for 700 rows.
-- **Decision:** move to a volatility-first design ([next-methodology.md](next-methodology.md)).
+- **Decision:** move to a volatility-first design (now described in [methodology.md](methodology.md)).
 
 ## 2026-11-24 — Study 2 set-up
 
