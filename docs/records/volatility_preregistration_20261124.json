@@ -1,0 +1,153 @@
+{
+ "development_end": "2023-12-13",
+ "development_record_sha256": "088a8ed77c2c331374759a8dc70efbe6c935e69c5296c2d4aa82533b1e21f397",
+ "disclosures": [
+  "The 2023-12-14 to 2025-12-31 part of the holdout was the test period of the first study. That study's null result prompted this design, so the design is conditioned on an outcome from that period. No volatility forecast, range-based variance or text model was evaluated there before this record. The slice from fresh_slice_start onward had never been evaluated in any form and is reported separately.",
+  "The primary news model was chosen on development data after generic FinBERT sentiment terms showed smaller gains. Development choices that were made or checked there: text model versus sentiment terms, level versus abnormal term shares, two penalty grids (the alternative grid lowered the pre-close gain), and index versus fund prices for the at-open contract. The vocabulary size, minimum term count, vocabulary date, transform and stacking cap were set once without tuning. Development figures are therefore optimistic.",
+  "H1 compares the text model with a baseline built from daily data only. In the pre-close contract the baseline knows prices through session s-2 while headlines run to 30 minutes before the close of s-1, so part of any gain may come from headlines that describe same-day market moves. A confirmed H1 shows that news text improves on a daily-data volatility model; it does not show that news holds information beyond intraday prices.",
+  "The at-open contract uses SPY prices because the S&P 500 index value at 09:30 is partly stale.",
+  "The power figure applies to H1 alone under the development effect size; the confirmed verdict adds two conditions and has lower power."
+ ],
+ "fresh_slice_start": "2026-01-02",
+ "holdout": [
+  "2023-12-14",
+  "2026-11-20"
+ ],
+ "holdout_eligible_rows": {
+  "at_open": {
+   "by_year": {
+    "2023": 11,
+    "2024": 252,
+    "2025": 237,
+    "2026": 224
+   },
+   "eligible_rows": 724,
+   "ineligible_by_reason": {
+    "news_surprise_warmup_or_gap": 1,
+    "news_window_incomplete": 12
+   },
+   "median_scored_headlines": 428.0
+  },
+  "pre_close": {
+   "by_year": {
+    "2023": 11,
+    "2024": 252,
+    "2025": 235,
+    "2026": 224
+   },
+   "eligible_rows": 722,
+   "ineligible_by_reason": {
+    "news_surprise_warmup_or_gap": 2,
+    "news_window_incomplete": 13
+   },
+   "median_scored_headlines": 689.5
+  }
+ },
+ "inputs": {
+  "calendar_id": "fd18770c4cc6d9309d9b42b4a0243b48277fdce4e882545eab1e2f333a0471ac",
+  "corpus_id": "f46b5cdfbf77041b514a2c479cbd71956a4d95b3bc7ee0bcdc9b5609108b1a4b",
+  "etf_sha256": "16c0d75e8741539c8a20aa075d0e1ad141692d3586e33ba7b71ea20da08f2016",
+  "fred_sha256": "0b7fbb7a0acd52b9cc2b06d7494f0ad648ab5b629e69b51ca53254bf76ad6b8e",
+  "ohlc_sha256": "c72fd9a862aded7f2aa07e7c1199b4701dda773299ff513bb32497570a519e0e",
+  "sampling_rate": 0.27,
+  "score_fingerprint_id": "ca5cf73e7c08db9132a67d7ff486e2fcdc93562968bb7e9b9f8cc88541ff14e9",
+  "scores_sha256": "9f956374c13d7ec2ba661135324b3b60c2dedf2725e0e65a84ff6c2e21e01160",
+  "vix_sha256": "409c4e80171f82285054875e0095aab5fd19b59670c987bc0e58f5919a69f3ee"
+ },
+ "key_secondary": "H2: the same model lowers the 5% FZ0 joint VaR/ES loss, same pooled one-sided test",
+ "model": "Baseline: OLS on log range-based variance with daily, weekly and monthly lags and log VIX (plus the overnight gap at the open); expanding window, refit monthly, at least 250 training rows. Challenger: the same plus a ridge regression of the baseline residual on headline term shares, penalty by blocked 5-fold cross-validation, scaled by an out-of-fold stacking weight. VaR and ES by filtered historical simulation using out-of-sample standardized returns once 250 are known.",
+ "power_note": "Development pooled QLIKE t = 2.05 on 624 sessions. If the holdout effect equals the development estimate, the expected t on about 715 sessions is 2.2 and power at a one-sided 5% level is about 70%; at half that effect it is about 30%. The development estimate is optimistic because the design was chosen on those data.",
+ "preregistration_id": "3f5a032a19e29e36e5ada9578e8fc9b8a2f99a8fb6fd6cee1b8529c09a656e36",
+ "primary_hypothesis": "H1: har+text_ridge has lower QLIKE than HAR on the holdout, tested once on the session-wise average of the two contracts' QLIKE improvements",
+ "primary_test": "one-sided Diebold-Mariano test with Newey-West variance, 5% level. Nested models on an expanding window make this test conservative.",
+ "protocol": {
+  "availability_buffer_minutes": 15,
+  "bootstrap": {
+   "blocks": [
+    20,
+    10,
+    5
+   ],
+   "replications": 2000,
+   "seed": 1729
+  },
+  "contracts": {
+   "at_open": [
+    "har_d",
+    "har_w",
+    "har_m",
+    "log_vix",
+    "gap"
+   ],
+   "pre_close": [
+    "har_d",
+    "har_w",
+    "har_m",
+    "log_vix"
+   ]
+  },
+  "garman_klass_weight": 0.3862943611198906,
+  "har_windows": [
+   1,
+   5,
+   22
+  ],
+  "information_lag_sessions": {
+   "at_open": 1,
+   "pre_close": 2
+  },
+  "min_pairs": 60,
+  "min_scored_headlines": 20,
+  "min_scoring_coverage": 0.98,
+  "min_tail_history": 250,
+  "min_training_rows": 250,
+  "newey_west_lags": "floor(4 * (n / 100) ** (2 / 9)); n=700 gives 6",
+  "news_term": "negative_share_surprise",
+  "open_buffer_minutes": 15.0,
+  "panel_offset_rows": 24,
+  "primary_model": "har+text_ridge",
+  "refit": "first row of each calendar month, retried until enough rows",
+  "secondary_news_terms": [
+   "negative_mean_surprise",
+   "negative_share_level",
+   "count_surprise"
+  ],
+  "tails": [
+   0.05,
+   0.01
+  ],
+  "test_level": 0.05,
+  "text_model": {
+   "binary_term_presence": true,
+   "folds": 5,
+   "max_features": 5000,
+   "min_documents": 200,
+   "name": "text_ridge",
+   "ngram_range": [
+    1,
+    2
+   ],
+   "ridge_penalties": [
+    10.0,
+    100.0,
+    1000.0,
+    10000.0
+   ],
+   "stacking": "out-of-fold slope floored at 0 and capped; zero unless it beats the zero predictor out of fold",
+   "stacking_cap": 1.5,
+   "stop_words": "english",
+   "token_pattern": "(?u)\\b[a-z][a-z'&\\-]{2,}\\b",
+   "transform": "log1p(1000 * share), standardized on training rows",
+   "vocabulary_end": "2020-12-31T23:59:59+00:00"
+  },
+  "variance_floor": 1e-08
+ },
+ "schema_version": "volatility_preregistration_v2",
+ "source": {
+  "lock_sha256": "ee0ed49b855bec1eb93464585330a76f15c2b5daec8de2fcba319b11b9c3a11b",
+  "pyproject_sha256": "be1811b9a32341677b2204a5b126509df1547593c93deb49431d04d4c8e138e5",
+  "src_tree": "2c1a42bdc2d6083855f54da8edf53fbfe96e4d6f"
+ },
+ "supporting": "per-contract tests with Holm-adjusted p-values; paired moving-block bootstrap (2,000 replications, blocks 20/10/5, seed 1729); 5% and 1% pinball and FZ0 losses; Giacomini-White conditional test with log VIX and absolute sentiment surprise as instruments; coverage and dynamic-quantile tests; FinBERT sentiment terms as exploratory comparisons",
+ "verdict_rule": "confirmed: H1 p < 0.05, the QLIKE improvement is positive in both contracts, and the pooled 5% FZ0 improvement is not negative. strong: confirmed and H2 p < 0.05. Otherwise not confirmed."
+}
